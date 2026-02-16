@@ -1,0 +1,177 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  Home,
+  Package,
+  Users,
+  Settings,
+  LogOut,
+  LucideIcon,
+  TrendingDown,
+  CalendarDays,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
+function CollapsedDropdownItem({
+  href,
+  icon: Icon,
+  label,
+  asAnchor,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  asAnchor?: boolean;
+}) {
+  const { state } = useSidebar();
+  const mounted = useMounted();
+  const collapsed = mounted && state === "collapsed";
+
+  const LinkOrAnchor = asAnchor ? "a" : Link;
+
+  if (!collapsed) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <LinkOrAnchor href={href}>
+            <Icon className="size-4" />
+            <span>{label}</span>
+          </LinkOrAnchor>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <SidebarMenuItem>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton className="cursor-pointer">
+            <Icon className="size-4" />
+            <span>{label}</span>
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="start">
+          <DropdownMenuItem asChild>
+            <LinkOrAnchor href={href}>{label}</LinkOrAnchor>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
+  );
+}
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const mounted = useMounted();
+  const collapsed = mounted && state === "collapsed";
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          {collapsed ? (
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton className="cursor-pointer">
+                    <Home className="size-4 shrink-0" />
+                    <span className="truncate font-semibold">
+                      Jouve · Logística
+                    </span>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start">
+                  <DropdownMenuItem asChild>
+                    <Link href="/">Jouve · Logística</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          ) : (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/">
+                  <Home className="size-4 shrink-0" />
+                  <span className="truncate font-semibold">
+                    Jouve · Logística
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <CollapsedDropdownItem
+                href="/"
+                icon={CalendarDays}
+                label="Períodos"
+              />
+              <CollapsedDropdownItem
+                href="/cash-flow"
+                icon={TrendingDown}
+                label="Flujo de fondos"
+              />
+              <CollapsedDropdownItem
+                href="/clients"
+                icon={Users}
+                label="Clientes"
+              />
+              <CollapsedDropdownItem
+                href="/shipments"
+                icon={Package}
+                label="Envíos"
+              />
+              <CollapsedDropdownItem
+                href="/settings"
+                icon={Settings}
+                label="Configuración"
+              />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <CollapsedDropdownItem
+            href="/auth/logout"
+            icon={LogOut}
+            label="Cerrar sesión"
+            asAnchor
+          />
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
