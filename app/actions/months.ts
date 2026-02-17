@@ -2,22 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { Month, MonthData, TransactionWithAmounts } from "@/lib/db/types";
-
-const MONTH_NAMES = [
-  "",
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
+import { MONTH_NAMES } from "@/lib/months";
 
 export async function getMonths(): Promise<Month[]> {
   const supabase = await createClient();
@@ -31,9 +16,7 @@ export async function getMonths(): Promise<Month[]> {
   return (data ?? []) as Month[];
 }
 
-export async function getMonthData(
-  monthId: string
-): Promise<MonthData | null> {
+export async function getMonthData(monthId: string): Promise<MonthData | null> {
   const supabase = await createClient();
 
   // Fetch month
@@ -73,7 +56,7 @@ export async function getMonthData(
 
 export async function getPreviousMonthClosingBalances(
   year: number,
-  month: number
+  month: number,
 ): Promise<{ account_id: string; account_name: string; balance: number }[]> {
   const supabase = await createClient();
 
@@ -141,7 +124,7 @@ export async function createMonthWithBalances(
   year: number,
   month: number,
   balances: { account_id: string; amount: number }[],
-  label?: string
+  label?: string,
 ): Promise<Month> {
   const supabase = await createClient();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import {
@@ -25,22 +25,7 @@ import {
   useCreateMonthWithBalances,
 } from "@/hooks/use-months";
 import { formatCurrency } from "@/lib/format";
-
-const MONTH_NAMES = [
-  "",
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
+import { MONTH_NAMES } from "@/lib/months";
 
 interface NewMonthModalProps {
   year: number;
@@ -53,31 +38,23 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
   const { data: prevBalances, isLoading } = usePreviousMonthBalances(
     year,
     month,
-    true
+    true,
   );
   const createMutation = useCreateMonthWithBalances();
 
   const [editing, setEditing] = useState(false);
   const [editedAmounts, setEditedAmounts] = useState<Record<string, number>>(
-    {}
+    () => {
+      const amounts: Record<string, number> = {};
+      for (const b of prevBalances ?? []) {
+        amounts[b.account_id] = b.balance;
+      }
+      return amounts;
+    },
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize edited amounts from previous balances
-  useEffect(() => {
-    if (prevBalances) {
-      const amounts: Record<string, number> = {};
-      for (const b of prevBalances) {
-        amounts[b.account_id] = b.balance;
-      }
-      setEditedAmounts(amounts);
-    }
-  }, [prevBalances]);
-
-  const total = Object.values(editedAmounts).reduce(
-    (sum, val) => sum + val,
-    0
-  );
+  const total = Object.values(editedAmounts).reduce((sum, val) => sum + val, 0);
 
   async function handleConfirm() {
     setError(null);
@@ -86,7 +63,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
         ([account_id, amount]) => ({
           account_id,
           amount,
-        })
+        }),
       );
 
       const newMonth = await createMutation.mutateAsync({
@@ -153,8 +130,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                             onChange={(e) =>
                               setEditedAmounts((prev) => ({
                                 ...prev,
-                                [b.account_id]:
-                                  parseFloat(e.target.value) || 0,
+                                [b.account_id]: parseFloat(e.target.value) || 0,
                               }))
                             }
                           />
@@ -174,9 +150,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
               </Table>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </>
         )}
 

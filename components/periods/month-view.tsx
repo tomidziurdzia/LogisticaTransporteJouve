@@ -42,7 +42,7 @@ export function MonthView({ monthId }: MonthViewProps) {
   // Calculations
   const openingTotal = opening_balances.reduce(
     (sum, ob) => sum + Number(ob.amount),
-    0
+    0,
   );
 
   let incomeTotal = 0;
@@ -83,8 +83,8 @@ export function MonthView({ monthId }: MonthViewProps) {
       <h2 className="text-2xl font-bold">{month.label}</h2>
 
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Saldo apertura
@@ -95,7 +95,7 @@ export function MonthView({ monthId }: MonthViewProps) {
             <p className="text-2xl font-bold">{formatCurrency(openingTotal)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
             <TrendingUp className="size-4 text-emerald-600" />
@@ -106,7 +106,7 @@ export function MonthView({ monthId }: MonthViewProps) {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Gastos</CardTitle>
             <TrendingDown className="size-4 text-red-600" />
@@ -117,7 +117,7 @@ export function MonthView({ monthId }: MonthViewProps) {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Saldo cierre</CardTitle>
             <Building2 className="size-4 text-muted-foreground" />
