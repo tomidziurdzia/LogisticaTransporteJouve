@@ -11,6 +11,7 @@ import {
   LucideIcon,
   TrendingDown,
   CalendarDays,
+  Tags,
 } from "lucide-react";
 import {
   Sidebar,
@@ -142,6 +143,11 @@ export function AppSidebar() {
                 href="/cash-flow"
                 icon={TrendingDown}
                 label="Flujo de fondos"
+              />
+              <CollapsedDropdownItem
+                href="/categories"
+                icon={Tags}
+                label="Categorías"
               />
               <CollapsedDropdownItem
                 href="/clients"
