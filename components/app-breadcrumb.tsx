@@ -13,6 +13,7 @@ import {
 const pathLabels: Record<string, string> = {
   "/": "Home",
   "/cash-flow": "Flujo de fondos",
+  "/categories": "Categorías",
   "/clients": "Clientes",
   "/shipments": "Envíos",
   "/settings": "Configuración",
@@ -27,6 +28,38 @@ export function AppBreadcrumb() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage>Home</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
+
+  // Handle /categories/[id]/subcategories
+  const subMatch = pathname.match(/^\/categories\/[^/]+\/subcategories$/);
+  if (subMatch) {
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <Link
+              href="/"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Home
+            </Link>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <Link
+              href="/categories"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Categorías
+            </Link>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Subcategorías</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
