@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import {
@@ -44,15 +44,19 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
 
   const [editing, setEditing] = useState(false);
   const [editedAmounts, setEditedAmounts] = useState<Record<string, number>>(
-    () => {
-      const amounts: Record<string, number> = {};
-      for (const b of prevBalances ?? []) {
-        amounts[b.account_id] = b.balance;
-      }
-      return amounts;
-    },
+    {},
   );
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!prevBalances) return;
+    const amounts: Record<string, number> = {};
+    for (const b of prevBalances) {
+      amounts[b.account_id] = b.balance;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditedAmounts(amounts);
+  }, [prevBalances]);
 
   const total = Object.values(editedAmounts).reduce((sum, val) => sum + val, 0);
 
