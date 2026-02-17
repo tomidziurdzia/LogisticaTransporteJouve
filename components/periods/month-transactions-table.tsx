@@ -191,6 +191,12 @@ export function MonthTransactionsTable({
   const [transferAmount, setTransferAmount] = useState<string>("");
   const [transferPrevType, setTransferPrevType] =
     useState<TransactionType>("income");
+  const [transferPrevCategoryId, setTransferPrevCategoryId] = useState<
+    string | null
+  >(null);
+  const [transferPrevSubcategoryId, setTransferPrevSubcategoryId] = useState<
+    string | null
+  >(null);
 
   // Allow typing "-" for negative amounts; key = `${rowId}-${accId}`
   const [pendingAmountInput, setPendingAmountInput] = useState<
@@ -791,17 +797,42 @@ export function MonthTransactionsTable({
                 size="sm"
                 onClick={() => {
                   const rowId = transferModalRowId;
+                  if (!rowId) {
+                    setTransferModalRowId(null);
+                    setTransferFrom("");
+                    setTransferTo("");
+                    setTransferAmount("");
+                    setTransferPrevCategoryId(null);
+                    setTransferPrevSubcategoryId(null);
+                    return;
+                  }
                   const draft = draftRows.find((r) => r.id === rowId);
                   if (draft) {
                     setDraftRows((prev) =>
                       prev.map((r) =>
-                        r.id === rowId ? { ...r, type: transferPrevType } : r,
+                        r.id === rowId
+                          ? {
+                              ...r,
+                              type: transferPrevType,
+                              category_id: transferPrevCategoryId,
+                              subcategory_id: transferPrevSubcategoryId,
+                            }
+                          : r,
                       ),
                     );
                   } else {
-                    setEdit(rowId, { type: transferPrevType });
+                    setEdit(rowId, {
+                      type: transferPrevType,
+                      category_id: transferPrevCategoryId,
+                      subcategory_id: transferPrevSubcategoryId,
+                    });
                   }
                   setTransferModalRowId(null);
+                  setTransferFrom("");
+                  setTransferTo("");
+                  setTransferAmount("");
+                  setTransferPrevCategoryId(null);
+                  setTransferPrevSubcategoryId(null);
                 }}
               >
                 Cancelar
@@ -859,6 +890,11 @@ export function MonthTransactionsTable({
                     return next;
                   });
                   setTransferModalRowId(null);
+                  setTransferFrom("");
+                  setTransferTo("");
+                  setTransferAmount("");
+                  setTransferPrevCategoryId(null);
+                  setTransferPrevSubcategoryId(null);
                 }}
               >
                 Confirmar
@@ -931,7 +967,7 @@ export function MonthTransactionsTable({
               <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-right font-medium tabular-nums">
                 Total
               </th>
-              <th className="sticky top-0 z-10 w-[4.5rem] bg-muted px-1 py-2" />
+              <th className="sticky top-0 z-10 w-18 bg-muted px-1 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -978,6 +1014,16 @@ export function MonthTransactionsTable({
                             const newType = e.target.value as TransactionType;
                             if (newType === "internal_transfer") {
                               setTransferPrevType(display.type);
+                              setTransferPrevCategoryId(
+                                "category_id" in display
+                                  ? (display.category_id as string | null)
+                                  : null,
+                              );
+                              setTransferPrevSubcategoryId(
+                                "subcategory_id" in display
+                                  ? (display.subcategory_id as string | null)
+                                  : null,
+                              );
                               setTransferModalRowId(row.id);
                               setTransferFrom("");
                               setTransferTo("");
@@ -1181,7 +1227,9 @@ export function MonthTransactionsTable({
                         const amountKey = `${row.id}-${accId}`;
                         const amount = getAmountForRow(display, accId);
                         const isExpense = display.type === "expense";
-                        const baseAmount = isExpense ? Math.abs(amount) : amount;
+                        const baseAmount = isExpense
+                          ? Math.abs(amount)
+                          : amount;
                         const inputValue =
                           pendingAmountInput[amountKey] !== undefined
                             ? pendingAmountInput[amountKey]
@@ -1266,7 +1314,7 @@ export function MonthTransactionsTable({
                         {formatCurrency(total)}
                       </td>
                       {/* Actions */}
-                      <td className="w-[4.5rem] px-1 py-1 align-middle">
+                      <td className="w-18 px-1 py-1 align-middle">
                         {isDraft ? (
                           <div className="flex items-center gap-0.5">
                             <Button
@@ -1404,7 +1452,7 @@ export function MonthTransactionsTable({
                       <td className="px-3 py-1.5 text-right text-sm font-medium tabular-nums">
                         {formatCurrency(total)}
                       </td>
-                      <td className="w-[4.5rem] px-1 py-1 align-top">
+                      <td className="w-18 px-1 py-1 align-top">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
