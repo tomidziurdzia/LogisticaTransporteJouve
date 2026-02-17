@@ -19,7 +19,10 @@ import { CategoryDialog } from "./category-dialog";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 import type { Category, TransactionType } from "@/lib/db/types";
 
-const typeBadge: Record<TransactionType, { label: string; variant: "income" | "expense" | "transfer" | "adjustment" }> = {
+const typeBadge: Record<
+  TransactionType,
+  { label: string; variant: "income" | "expense" | "transfer" | "adjustment" }
+> = {
   income: { label: "Ingreso", variant: "income" },
   expense: { label: "Gasto", variant: "expense" },
   internal_transfer: { label: "Transferencia", variant: "transfer" },
@@ -60,7 +63,7 @@ export function CategoriesTable() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Categorías</h2>
         <Button onClick={handleCreate} size="sm">
@@ -69,13 +72,13 @@ export function CategoriesTable() {
         </Button>
       </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-auto rounded-md border">
+      <div className="mt-4 rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead className="w-[140px] text-right">Acciones</TableHead>
+              <TableHead className="w-35 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,7 +119,10 @@ export function CategoriesTable() {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={3}
+                  className="text-center text-muted-foreground"
+                >
                   No hay categorías
                 </TableCell>
               </TableRow>
@@ -135,6 +141,6 @@ export function CategoriesTable() {
         onOpenChange={setDeleteDialogOpen}
         category={deleteTarget}
       />
-    </div>
+    </>
   );
 }
