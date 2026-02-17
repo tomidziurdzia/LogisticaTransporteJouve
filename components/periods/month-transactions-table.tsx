@@ -34,6 +34,7 @@ import {
   useDeleteTransaction,
 } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/format";
+import { SubcategoryDialog } from "@/components/categories/subcategory-dialog";
 
 const TYPE_LABEL: Record<string, string> = {
   income: "Ingreso",
@@ -161,6 +162,8 @@ function mergeRow(
 
 interface MonthTransactionsTableProps {
   monthId: string;
+  monthYear: number;
+  monthNumber: number;
   accounts: Account[];
   categories: Category[];
   subcategories: Subcategory[];
@@ -170,6 +173,8 @@ interface MonthTransactionsTableProps {
 
 export function MonthTransactionsTable({
   monthId,
+  monthYear,
+  monthNumber,
   accounts,
   categories,
   subcategories,
@@ -202,6 +207,31 @@ export function MonthTransactionsTable({
   const [pendingAmountInput, setPendingAmountInput] = useState<
     Record<string, string>
   >({});
+
+  // Subcategory dialog state (reused with categories page dialog)
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] =
+    useState<boolean>(false);
+  const [subcategoryDialogCategoryId, setSubcategoryDialogCategoryId] =
+    useState<string | null>(null);
+
+  // Month date boundaries (YYYY-MM-DD)
+  const monthStart = useMemo(() => {
+    const m = String(monthNumber).padStart(2, "0");
+    return `${monthYear}-${m}-01`;
+  }, [monthYear, monthNumber]);
+
+  const monthEnd = useMemo(() => {
+    const m = monthNumber;
+    const nextMonth = m === 12 ? 1 : m + 1;
+    const nextYear = m === 12 ? monthYear + 1 : monthYear;
+    const nextMonthStr = String(nextMonth).padStart(2, "0");
+    // Day 0 of next month is last day of current month
+    const d = new Date(`${nextYear}-${nextMonthStr}-01T00:00:00Z`);
+    d.setUTCDate(0);
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const monthStr = String(monthNumber).padStart(2, "0");
+    return `${monthYear}-${monthStr}-${day}`;
+  }, [monthYear, monthNumber]);
 
   // Sort direction
   const [dateSortDir, setDateSortDir] = useState<"asc" | "desc">("desc");
@@ -363,6 +393,10 @@ export function MonthTransactionsTable({
         setValidationError("La fecha es obligatoria.");
         return;
       }
+      if (displayDate < monthStart || displayDate > monthEnd) {
+        setValidationError("La fecha debe estar dentro del mes seleccionado.");
+        return;
+      }
       if (!String(displayDesc).trim()) {
         setValidationError("La descripción es obligatoria.");
         return;
@@ -428,7 +462,16 @@ export function MonthTransactionsTable({
         // Error shown via mutation state
       }
     },
-    [accountIds, monthId, nextRowOrder, createTx, draftRows, getDisplayRow],
+    [
+      accountIds,
+      monthId,
+      nextRowOrder,
+      createTx,
+      draftRows,
+      getDisplayRow,
+      monthStart,
+      monthEnd,
+    ],
   );
 
   // ---------- Edit existing row ----------
@@ -452,6 +495,10 @@ export function MonthTransactionsTable({
 
       if (!display.date?.trim()) {
         setValidationError("La fecha es obligatoria.");
+        return;
+      }
+      if (display.date < monthStart || display.date > monthEnd) {
+        setValidationError("La fecha debe estar dentro del mes seleccionado.");
         return;
       }
       if (!display.description?.trim()) {
@@ -545,7 +592,16 @@ export function MonthTransactionsTable({
         // Error shown via mutation state
       }
     },
-    [edits, allRows, transactions, accountIds, getDisplayRow, updateTx],
+    [
+      edits,
+      allRows,
+      transactions,
+      accountIds,
+      getDisplayRow,
+      updateTx,
+      monthStart,
+      monthEnd,
+    ],
   );
 
   // ---------- Delete ----------
@@ -992,6 +1048,8 @@ export function MonthTransactionsTable({
                         <Input
                           type="date"
                           value={display.date}
+                          min={monthStart}
+                          max={monthEnd}
                           onChange={(e) =>
                             isDraft
                               ? setDraftRows((prev) =>
@@ -1163,39 +1221,56 @@ export function MonthTransactionsTable({
                             —
                           </span>
                         ) : (
-                          <select
-                            value={display.subcategory_id ?? ""}
-                            onChange={(e) => {
-                              const nextSubId =
-                                e.target.value || (null as string | null);
-                              if (isDraft) {
-                                setDraftRows((prev) =>
-                                  prev.map((r) =>
-                                    r.id === row.id
-                                      ? {
-                                          ...r,
-                                          subcategory_id: nextSubId,
-                                        }
-                                      : r,
-                                  ),
-                                );
-                              } else {
-                                setEdit(row.id, {
-                                  subcategory_id: nextSubId,
-                                });
-                              }
-                            }}
-                            className={selectClass}
-                          >
-                            <option value="">Sin subcategoría</option>
-                            {getSubcategoriesForCategory(
-                              display.category_id ?? null,
-                            ).map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.name}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={display.subcategory_id ?? ""}
+                              onChange={(e) => {
+                                const nextSubId =
+                                  e.target.value || (null as string | null);
+                                if (isDraft) {
+                                  setDraftRows((prev) =>
+                                    prev.map((r) =>
+                                      r.id === row.id
+                                        ? {
+                                            ...r,
+                                            subcategory_id: nextSubId,
+                                          }
+                                        : r,
+                                    ),
+                                  );
+                                } else {
+                                  setEdit(row.id, {
+                                    subcategory_id: nextSubId,
+                                  });
+                                }
+                              }}
+                              className={selectClass}
+                            >
+                              <option value="">Sin subcategoría</option>
+                              {getSubcategoriesForCategory(
+                                display.category_id ?? null,
+                              ).map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon-xs"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const cid = display.category_id;
+                                if (!cid) return;
+                                setSubcategoryDialogCategoryId(cid);
+                                setSubcategoryDialogOpen(true);
+                              }}
+                              title="Agregar subcategoría"
+                            >
+                              <Plus className="size-3" />
+                            </Button>
+                          </div>
                         )}
                       </td>
                       {/* Description */}
@@ -1496,6 +1571,19 @@ export function MonthTransactionsTable({
           </p>
         )}
       </div>
+      {subcategoryDialogCategoryId && (
+        <SubcategoryDialog
+          open={subcategoryDialogOpen}
+          onOpenChange={(open) => {
+            setSubcategoryDialogOpen(open);
+            if (!open) {
+              setSubcategoryDialogCategoryId(null);
+            }
+          }}
+          categoryId={subcategoryDialogCategoryId}
+          subcategory={null}
+        />
+      )}
     </div>
   );
 }

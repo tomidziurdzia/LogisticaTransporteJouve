@@ -146,6 +146,8 @@ export function MonthView({ monthId }: MonthViewProps) {
       {/* Transactions table */}
       <MonthTransactionsTable
         monthId={monthId}
+        monthYear={month.year}
+        monthNumber={month.month}
         accounts={accounts ?? []}
         categories={categories ?? []}
         subcategories={subcategories ?? []}
