@@ -16,3 +16,27 @@ export interface Account {
   created_at: string;
   updated_at: string;
 }
+
+// --- Categories ---
+
+export type TransactionType =
+  | "income"
+  | "expense"
+  | "internal_transfer"
+  | "adjustment";
+
+export interface Category {
+  id: string;
+  name: string;
+  type: TransactionType;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Subcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
