@@ -23,8 +23,8 @@ export function MonthView({ monthId }: MonthViewProps) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-48" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
@@ -46,7 +46,8 @@ export function MonthView({ monthId }: MonthViewProps) {
   );
 
   let incomeTotal = 0;
-  let expenseTotal = 0;
+  let expenseOpTotal = 0;
+  let expenseNoOpTotal = 0;
   let allAmountsSum = 0;
 
   for (const tx of transactions) {
@@ -54,7 +55,13 @@ export function MonthView({ monthId }: MonthViewProps) {
       const amt = Number(ta.amount);
       allAmountsSum += amt;
       if (tx.type === "income") incomeTotal += amt;
-      if (tx.type === "expense") expenseTotal += Math.abs(amt);
+      if (tx.type === "expense") {
+        if (tx.is_operational) {
+          expenseOpTotal += Math.abs(amt);
+        } else {
+          expenseNoOpTotal += Math.abs(amt);
+        }
+      }
     }
   }
 
@@ -83,7 +90,7 @@ export function MonthView({ monthId }: MonthViewProps) {
       <h2 className="text-2xl font-bold">{month.label}</h2>
 
       {/* Summary cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
@@ -108,12 +115,23 @@ export function MonthView({ monthId }: MonthViewProps) {
         </Card>
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Gastos</CardTitle>
+            <CardTitle className="text-sm font-medium">Gastos Op</CardTitle>
             <TrendingDown className="size-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-              {formatCurrency(expenseTotal)}
+              {formatCurrency(expenseOpTotal)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Gastos No Op</CardTitle>
+            <TrendingDown className="size-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+              {formatCurrency(expenseNoOpTotal)}
             </p>
           </CardContent>
         </Card>

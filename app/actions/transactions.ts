@@ -10,6 +10,7 @@ export interface CreateTransactionInput {
   description: string;
   category_id?: string | null;
   subcategory_id?: string | null;
+  is_operational?: boolean;
   row_order?: number;
   amounts: { account_id: string; amount: number }[];
 }
@@ -28,6 +29,7 @@ export async function createTransaction(
       description: input.description,
       category_id: input.category_id ?? null,
       subcategory_id: input.subcategory_id ?? null,
+      is_operational: input.is_operational ?? true,
       row_order: input.row_order ?? 0,
     })
     .select("id")
@@ -61,6 +63,7 @@ export interface UpdateTransactionInput {
   description?: string;
   category_id?: string | null;
   subcategory_id?: string | null;
+  is_operational?: boolean;
   row_order?: number;
   amounts?: { account_id: string; amount: number }[];
 }
@@ -80,6 +83,8 @@ export async function updateTransaction(
   if (input.category_id !== undefined) fields.category_id = input.category_id;
   if (input.subcategory_id !== undefined)
     fields.subcategory_id = input.subcategory_id;
+  if (input.is_operational !== undefined)
+    fields.is_operational = input.is_operational;
   if (input.row_order !== undefined) fields.row_order = input.row_order;
 
   const { error: txErr } = await supabase

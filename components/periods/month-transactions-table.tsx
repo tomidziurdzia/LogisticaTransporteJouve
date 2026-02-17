@@ -102,6 +102,7 @@ interface DraftRow {
   description: string;
   category_id: string | null;
   subcategory_id: string | null;
+  is_operational: boolean;
   amounts: Record<string, number>;
 }
 
@@ -111,6 +112,7 @@ type RowEdit = Partial<{
   description: string;
   category_id: string | null;
   subcategory_id: string | null;
+  is_operational: boolean;
   amounts: Record<string, number>;
 }>;
 
@@ -143,6 +145,9 @@ function mergeRow(
       }),
       ...(edit.subcategory_id !== undefined && {
         subcategory_id: edit.subcategory_id,
+      }),
+      ...(edit.is_operational !== undefined && {
+        is_operational: edit.is_operational,
       }),
       ...(edit.amounts !== undefined && {
         transaction_amounts: amounts.map((a) => ({
@@ -243,6 +248,9 @@ export function MonthTransactionsTable({
   const [filterDescription, setFilterDescription] = useState<string>("");
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [filterIsOperational, setFilterIsOperational] = useState<
+    "" | "true" | "false"
+  >("");
 
   const hasActiveFilters =
     filterType !== "" ||
@@ -250,7 +258,8 @@ export function MonthTransactionsTable({
     filterSubcategoryId !== "" ||
     filterDescription !== "" ||
     filterDateFrom !== "" ||
-    filterDateTo !== "";
+    filterDateTo !== "" ||
+    filterIsOperational !== "";
 
   const clearFilters = useCallback(() => {
     setFilterType("");
@@ -259,6 +268,7 @@ export function MonthTransactionsTable({
     setFilterDescription("");
     setFilterDateFrom("");
     setFilterDateTo("");
+    setFilterIsOperational("");
   }, []);
 
   const createTx = useCreateTransaction(monthId);
@@ -312,6 +322,11 @@ export function MonthTransactionsTable({
         return false;
       if (filterDateFrom && display.date < filterDateFrom) return false;
       if (filterDateTo && display.date > filterDateTo) return false;
+      if (
+        filterIsOperational &&
+        display.is_operational !== (filterIsOperational === "true")
+      )
+        return false;
       return true;
     });
   }, [
@@ -323,6 +338,7 @@ export function MonthTransactionsTable({
     filterDescription,
     filterDateFrom,
     filterDateTo,
+    filterIsOperational,
   ]);
 
   // ---------- Edit helpers ----------
@@ -358,6 +374,7 @@ export function MonthTransactionsTable({
         description: "",
         category_id: null,
         subcategory_id: null,
+        is_operational: true,
         amounts: {},
       },
     ]);
@@ -446,6 +463,8 @@ export function MonthTransactionsTable({
           description: String(displayDesc).trim(),
           category_id: displayCategoryId ?? null,
           subcategory_id: displaySubcategoryId ?? null,
+          is_operational:
+            "is_operational" in display ? display.is_operational : true,
           row_order: nextRowOrder + draftIndex,
           amounts,
         });
@@ -547,6 +566,8 @@ export function MonthTransactionsTable({
           payload.category_id = edit.category_id;
         if (edit.subcategory_id !== undefined)
           payload.subcategory_id = edit.subcategory_id;
+        if (edit.is_operational !== undefined)
+          payload.is_operational = edit.is_operational;
         // Internal transfers shouldn't keep category/subcategory.
         if (display.type === "internal_transfer") {
           payload.category_id = null;
@@ -728,6 +749,19 @@ export function MonthTransactionsTable({
             className="h-8 w-36 text-sm"
           />
         </div>
+        <select
+          value={filterIsOperational}
+          onChange={(e) =>
+            setFilterIsOperational(
+              e.target.value as "" | "true" | "false",
+            )
+          }
+          className="border-input h-8 rounded-md border bg-transparent px-2 py-1 text-sm"
+        >
+          <option value="">Op / No Op</option>
+          <option value="true">Operativo</option>
+          <option value="false">No operativo</option>
+        </select>
         {hasActiveFilters && (
           <Button
             type="button"
@@ -980,6 +1014,8 @@ export function MonthTransactionsTable({
             ))}
             {/* Total */}
             <col className="w-24" />
+            {/* Op */}
+            <col className="w-20" />
             {/* Acciones */}
             <col className="w-18" />
           </colgroup>
@@ -1022,6 +1058,9 @@ export function MonthTransactionsTable({
               ))}
               <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-right font-medium tabular-nums">
                 Total
+              </th>
+              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
+                Op
               </th>
               <th className="sticky top-0 z-10 w-18 bg-muted px-1 py-2" />
             </tr>
@@ -1388,6 +1427,34 @@ export function MonthTransactionsTable({
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                         {formatCurrency(total)}
                       </td>
+                      {/* Op checkbox */}
+                      <td className="px-3 py-1.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            "is_operational" in display
+                              ? display.is_operational
+                              : true
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            if (isDraft) {
+                              setDraftRows((prev) =>
+                                prev.map((r) =>
+                                  r.id === row.id
+                                    ? { ...r, is_operational: checked }
+                                    : r,
+                                ),
+                              );
+                            } else {
+                              setEdit(row.id, {
+                                is_operational: checked,
+                              });
+                            }
+                          }}
+                          className="size-4 rounded border-input accent-primary"
+                        />
+                      </td>
                       {/* Actions */}
                       <td className="w-18 px-1 py-1 align-middle">
                         {isDraft ? (
@@ -1526,6 +1593,18 @@ export function MonthTransactionsTable({
                       })}
                       <td className="px-3 py-1.5 text-right text-sm font-medium tabular-nums">
                         {formatCurrency(total)}
+                      </td>
+                      <td className="px-3 py-1.5 text-center">
+                        {"is_operational" in display &&
+                        display.is_operational === false ? (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300 dark:text-orange-400 dark:border-orange-600">
+                            No Op
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-300 dark:text-emerald-400 dark:border-emerald-600">
+                            Op
+                          </Badge>
+                        )}
                       </td>
                       <td className="w-18 px-1 py-1 align-top">
                         <DropdownMenu>
