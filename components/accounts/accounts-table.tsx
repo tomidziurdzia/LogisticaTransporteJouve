@@ -17,6 +17,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { AccountDialog } from "./account-dialog";
 import { DeleteAccountDialog } from "./delete-account-dialog";
 import type { Account, AccountType } from "@/lib/db/types";
+import { formatCurrency } from "@/lib/format";
 
 const typeBadge: Record<AccountType, { label: string; variant: "bank" | "cash" | "wallet" | "investment" | "checks" | "other" }> = {
   bank: { label: "Banco", variant: "bank" },
@@ -26,14 +27,6 @@ const typeBadge: Record<AccountType, { label: string; variant: "bank" | "cash" |
   checks: { label: "Cheques", variant: "checks" },
   other: { label: "Otro", variant: "other" },
 };
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
 
 export function AccountsTable() {
   const { data: accounts, isLoading } = useAccounts();

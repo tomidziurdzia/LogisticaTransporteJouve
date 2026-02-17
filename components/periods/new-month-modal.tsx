@@ -24,6 +24,7 @@ import {
   usePreviousMonthBalances,
   useCreateMonthWithBalances,
 } from "@/hooks/use-months";
+import { formatCurrency } from "@/lib/format";
 
 const MONTH_NAMES = [
   "",
@@ -40,14 +41,6 @@ const MONTH_NAMES = [
   "Noviembre",
   "Diciembre",
 ];
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
 
 interface NewMonthModalProps {
   year: number;

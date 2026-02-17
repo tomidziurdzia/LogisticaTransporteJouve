@@ -33,6 +33,7 @@ import {
   useUpdateTransaction,
   useDeleteTransaction,
 } from "@/hooks/use-transactions";
+import { formatCurrency } from "@/lib/format";
 
 const TYPE_LABEL: Record<string, string> = {
   income: "Ingreso",
@@ -50,14 +51,6 @@ const TYPE_BADGE_VARIANT: Record<
   internal_transfer: "transfer",
   adjustment: "adjustment",
 };
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
 
 function toYMD(d: Date): string {
   const y = d.getFullYear();
@@ -501,6 +494,11 @@ export function MonthTransactionsTable({
           payload.category_id = edit.category_id;
         if (edit.subcategory_id !== undefined)
           payload.subcategory_id = edit.subcategory_id;
+        // Internal transfers shouldn't keep category/subcategory.
+        if (display.type === "internal_transfer") {
+          payload.category_id = null;
+          payload.subcategory_id = null;
+        }
         if (edit.amounts !== undefined || edit.type !== undefined) {
           const fullAmounts = {
             ...Object.fromEntries(
@@ -517,7 +515,9 @@ export function MonthTransactionsTable({
                   ? amount!
                   : display.type === "expense"
                     ? -Math.abs(amount!)
-                    : Math.abs(amount!),
+                    : display.type === "income"
+                      ? Math.abs(amount!)
+                      : amount!,
             }));
         }
         await updateTx.mutateAsync(payload);
@@ -986,12 +986,21 @@ export function MonthTransactionsTable({
                                 setDraftRows((prev) =>
                                   prev.map((r) =>
                                     r.id === row.id
-                                      ? { ...r, type: newType }
+                                      ? {
+                                          ...r,
+                                          type: newType,
+                                          category_id: null,
+                                          subcategory_id: null,
+                                        }
                                       : r,
                                   ),
                                 );
                               } else {
-                                setEdit(row.id, { type: newType });
+                                setEdit(row.id, {
+                                  type: newType,
+                                  category_id: null,
+                                  subcategory_id: null,
+                                });
                               }
                               return;
                             }
@@ -1171,13 +1180,14 @@ export function MonthTransactionsTable({
                       {accountIds.map((accId) => {
                         const amountKey = `${row.id}-${accId}`;
                         const amount = getAmountForRow(display, accId);
+                        const isExpense = display.type === "expense";
+                        const baseAmount = isExpense ? Math.abs(amount) : amount;
                         const inputValue =
                           pendingAmountInput[amountKey] !== undefined
                             ? pendingAmountInput[amountKey]
-                            : amount === 0
+                            : baseAmount === 0
                               ? ""
-                              : String(amount);
-                        const isExpense = display.type === "expense";
+                              : String(baseAmount);
                         return (
                           <td key={accId} className="px-3 py-1.5 text-right">
                             <div className="relative inline-flex items-center">
@@ -1198,12 +1208,16 @@ export function MonthTransactionsTable({
                                     ...prev,
                                     [amountKey]: raw,
                                   }));
-                                  const valueToStore =
-                                    raw === "" || raw === "-"
-                                      ? 0
-                                      : !Number.isNaN(num)
-                                        ? num
-                                        : amount;
+                                  let valueToStore: number;
+                                  if (raw === "" || raw === "-") {
+                                    valueToStore = 0;
+                                  } else if (!Number.isNaN(num)) {
+                                    valueToStore = isExpense
+                                      ? -Math.abs(num)
+                                      : num;
+                                  } else {
+                                    valueToStore = amount;
+                                  }
                                   if (isDraft) {
                                     setDraftRows((prev) =>
                                       prev.map((r) =>

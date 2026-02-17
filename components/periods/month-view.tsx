@@ -6,15 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMonthData } from "@/hooks/use-month-data";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useCategories, useSubcategories } from "@/hooks/use-categories";
+import { formatCurrency } from "@/lib/format";
 import { MonthTransactionsTable } from "./month-transactions-table";
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-}
 
 interface MonthViewProps {
   monthId: string;
