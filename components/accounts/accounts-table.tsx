@@ -69,7 +69,7 @@ export function AccountsTable() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Cuentas</h2>
         <Button onClick={handleCreate} size="sm">
@@ -78,7 +78,7 @@ export function AccountsTable() {
         </Button>
       </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-auto rounded-md border">
+      <div className="mt-4 rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

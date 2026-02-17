@@ -9,9 +9,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useMonthData } from "@/hooks/use-month-data";
 
 const pathLabels: Record<string, string> = {
-  "/": "Home",
+  "/": "Períodos",
   "/cash-flow": "Flujo de fondos",
   "/categories": "Categorías",
   "/accounts": "Cuentas",
@@ -19,6 +20,11 @@ const pathLabels: Record<string, string> = {
   "/shipments": "Envíos",
   "/settings": "Configuración",
 };
+
+function MonthBreadcrumbLabel({ monthId }: { monthId: string }) {
+  const { data } = useMonthData(monthId);
+  return <BreadcrumbPage>{data?.month.label ?? "Cargando..."}</BreadcrumbPage>;
+}
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
@@ -28,7 +34,31 @@ export function AppBreadcrumb() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>Home</BreadcrumbPage>
+            <BreadcrumbPage>Períodos</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
+
+  // Handle /month/[monthId]
+  const monthMatch = pathname.match(/^\/month\/([^/]+)$/);
+  if (monthMatch) {
+    const monthId = monthMatch[1];
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <Link
+              href="/"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Períodos
+            </Link>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <MonthBreadcrumbLabel monthId={monthId} />
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -46,7 +76,7 @@ export function AppBreadcrumb() {
               href="/"
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              Home
+              Períodos
             </Link>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -77,7 +107,7 @@ export function AppBreadcrumb() {
             href="/"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            Home
+            Períodos
           </Link>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
