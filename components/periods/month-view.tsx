@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMonthData } from "@/hooks/use-month-data";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useCategories } from "@/hooks/use-categories";
+import { useCategories, useSubcategories } from "@/hooks/use-categories";
 import { MonthTransactionsTable } from "./month-transactions-table";
 
 function formatCurrency(value: number): string {
@@ -24,6 +24,7 @@ export function MonthView({ monthId }: MonthViewProps) {
   const { data: monthData, isLoading: monthLoading } = useMonthData(monthId);
   const { data: accounts, isLoading: accLoading } = useAccounts();
   const { data: categories } = useCategories();
+  const { data: subcategories } = useSubcategories();
 
   if (monthLoading || accLoading) {
     return (
@@ -154,6 +155,7 @@ export function MonthView({ monthId }: MonthViewProps) {
         monthId={monthId}
         accounts={accounts ?? []}
         categories={categories ?? []}
+        subcategories={subcategories ?? []}
         transactions={transactions}
         nextRowOrder={nextRowOrder}
       />

@@ -15,6 +15,7 @@ import {
 import type {
   Account,
   Category,
+  Subcategory,
   TransactionType,
   TransactionWithAmounts,
 } from "@/lib/db/types";
@@ -68,16 +69,20 @@ function toYMD(d: Date): string {
 function formatDate(dateStr: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+  return d.toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function getAmountForRow(
   row: TransactionWithAmounts | DraftRow,
-  accountId: string
+  accountId: string,
 ): number {
   if ("transaction_amounts" in row && row.transaction_amounts) {
     const line = row.transaction_amounts.find(
-      (a) => a.account_id === accountId
+      (a) => a.account_id === accountId,
     );
     return line?.amount ?? 0;
   }
@@ -89,7 +94,7 @@ function getAmountForRow(
 
 function getRowTotal(
   row: TransactionWithAmounts | DraftRow,
-  accountIds: string[]
+  accountIds: string[],
 ): number {
   return accountIds.reduce((s, accId) => s + getAmountForRow(row, accId), 0);
 }
@@ -102,6 +107,7 @@ interface DraftRow {
   type: TransactionType;
   description: string;
   category_id: string | null;
+  subcategory_id: string | null;
   amounts: Record<string, number>;
 }
 
@@ -110,6 +116,7 @@ type RowEdit = Partial<{
   type: TransactionType;
   description: string;
   category_id: string | null;
+  subcategory_id: string | null;
   amounts: Record<string, number>;
 }>;
 
@@ -120,7 +127,7 @@ type TableRow = { id: string; isDraft: boolean } & (
 
 function mergeRow(
   row: TransactionWithAmounts | DraftRow,
-  edit: RowEdit | undefined
+  edit: RowEdit | undefined,
 ): TransactionWithAmounts | DraftRow {
   if (!edit || Object.keys(edit).length === 0) return row;
   if ("transaction_amounts" in row) {
@@ -139,6 +146,9 @@ function mergeRow(
       ...(edit.description !== undefined && { description: edit.description }),
       ...(edit.category_id !== undefined && {
         category_id: edit.category_id,
+      }),
+      ...(edit.subcategory_id !== undefined && {
+        subcategory_id: edit.subcategory_id,
       }),
       ...(edit.amounts !== undefined && {
         transaction_amounts: amounts.map((a) => ({
@@ -160,6 +170,7 @@ interface MonthTransactionsTableProps {
   monthId: string;
   accounts: Account[];
   categories: Category[];
+  subcategories: Subcategory[];
   transactions: TransactionWithAmounts[];
   nextRowOrder: number;
 }
@@ -168,6 +179,7 @@ export function MonthTransactionsTable({
   monthId,
   accounts,
   categories,
+  subcategories,
   transactions,
   nextRowOrder,
 }: MonthTransactionsTableProps) {
@@ -179,7 +191,7 @@ export function MonthTransactionsTable({
 
   // Transfer modal state
   const [transferModalRowId, setTransferModalRowId] = useState<string | null>(
-    null
+    null,
   );
   const [transferFrom, setTransferFrom] = useState<string>("");
   const [transferTo, setTransferTo] = useState<string>("");
@@ -198,6 +210,7 @@ export function MonthTransactionsTable({
   // Filters
   const [filterType, setFilterType] = useState<TransactionType | "">("");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("");
+  const [filterSubcategoryId, setFilterSubcategoryId] = useState<string>("");
   const [filterDescription, setFilterDescription] = useState<string>("");
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
@@ -205,6 +218,7 @@ export function MonthTransactionsTable({
   const hasActiveFilters =
     filterType !== "" ||
     filterCategoryId !== "" ||
+    filterSubcategoryId !== "" ||
     filterDescription !== "" ||
     filterDateFrom !== "" ||
     filterDateTo !== "";
@@ -212,6 +226,7 @@ export function MonthTransactionsTable({
   const clearFilters = useCallback(() => {
     setFilterType("");
     setFilterCategoryId("");
+    setFilterSubcategoryId("");
     setFilterDescription("");
     setFilterDateFrom("");
     setFilterDateTo("");
@@ -257,6 +272,8 @@ export function MonthTransactionsTable({
       if (filterType && display.type !== filterType) return false;
       if (filterCategoryId && display.category_id !== filterCategoryId)
         return false;
+      if (filterSubcategoryId && display.subcategory_id !== filterSubcategoryId)
+        return false;
       if (
         filterDescription &&
         !display.description
@@ -273,6 +290,7 @@ export function MonthTransactionsTable({
     hasActiveFilters,
     filterType,
     filterCategoryId,
+    filterSubcategoryId,
     filterDescription,
     filterDateFrom,
     filterDateTo,
@@ -282,7 +300,7 @@ export function MonthTransactionsTable({
 
   const getDisplayRow = useCallback(
     (row: TableRow) => mergeRow(row, edits[row.id]),
-    [edits]
+    [edits],
   );
 
   const setEdit = useCallback((id: string, update: RowEdit) => {
@@ -292,7 +310,7 @@ export function MonthTransactionsTable({
       const hasChange = keys.some((k) => next[k] !== undefined);
       if (!hasChange) {
         return Object.fromEntries(
-          Object.entries(prev).filter(([k]) => k !== id)
+          Object.entries(prev).filter(([k]) => k !== id),
         ) as Record<string, RowEdit>;
       }
       return { ...prev, [id]: next };
@@ -310,6 +328,7 @@ export function MonthTransactionsTable({
         type: "expense",
         description: "",
         category_id: null,
+        subcategory_id: null,
         amounts: {},
       },
     ]);
@@ -334,8 +353,10 @@ export function MonthTransactionsTable({
       const displayType = "type" in display ? display.type : d.type;
       const displayCategoryId =
         "category_id" in display ? display.category_id : d.category_id;
+      const displaySubcategoryId =
+        "subcategory_id" in display ? display.subcategory_id : d.subcategory_id;
       const accountsWithAmount = accountIds.filter(
-        (accId) => getAmountForRow(display, accId) !== 0
+        (accId) => getAmountForRow(display, accId) !== 0,
       ).length;
       const hasAmount = accountsWithAmount > 0;
 
@@ -353,18 +374,18 @@ export function MonthTransactionsTable({
       }
       if (displayType === "internal_transfer" && accountsWithAmount < 2) {
         setValidationError(
-          "La transferencia interna requiere al menos dos cuentas."
+          "La transferencia interna requiere al menos dos cuentas.",
         );
         return;
       }
       if (displayType === "internal_transfer") {
         const sum = accountIds.reduce(
           (s, accId) => s + getAmountForRow(display, accId),
-          0
+          0,
         );
         if (Math.abs(sum) > 1e-6) {
           setValidationError(
-            "En una transferencia interna, la suma de los montos debe ser 0."
+            "En una transferencia interna, la suma de los montos debe ser 0.",
           );
           return;
         }
@@ -391,6 +412,7 @@ export function MonthTransactionsTable({
           type: displayType,
           description: String(displayDesc).trim(),
           category_id: displayCategoryId ?? null,
+          subcategory_id: displaySubcategoryId ?? null,
           row_order: nextRowOrder + draftIndex,
           amounts,
         });
@@ -407,7 +429,7 @@ export function MonthTransactionsTable({
         // Error shown via mutation state
       }
     },
-    [accountIds, monthId, nextRowOrder, createTx, draftRows, getDisplayRow]
+    [accountIds, monthId, nextRowOrder, createTx, draftRows, getDisplayRow],
   );
 
   // ---------- Edit existing row ----------
@@ -425,7 +447,7 @@ export function MonthTransactionsTable({
       setValidationError(null);
 
       const accountsWithAmount = accountIds.filter(
-        (accId) => getAmountForRow(display, accId) !== 0
+        (accId) => getAmountForRow(display, accId) !== 0,
       ).length;
       const hasAmount = accountsWithAmount > 0;
 
@@ -443,18 +465,18 @@ export function MonthTransactionsTable({
       }
       if (display.type === "internal_transfer" && accountsWithAmount < 2) {
         setValidationError(
-          "La transferencia interna requiere al menos dos cuentas."
+          "La transferencia interna requiere al menos dos cuentas.",
         );
         return;
       }
       if (display.type === "internal_transfer") {
         const sum = accountIds.reduce(
           (s, accId) => s + getAmountForRow(display, accId),
-          0
+          0,
         );
         if (Math.abs(sum) > 1e-6) {
           setValidationError(
-            "En una transferencia interna, la suma de los montos debe ser 0."
+            "En una transferencia interna, la suma de los montos debe ser 0.",
           );
           return;
         }
@@ -477,10 +499,12 @@ export function MonthTransactionsTable({
           payload.description = edit.description;
         if (edit.category_id !== undefined)
           payload.category_id = edit.category_id;
+        if (edit.subcategory_id !== undefined)
+          payload.subcategory_id = edit.subcategory_id;
         if (edit.amounts !== undefined || edit.type !== undefined) {
           const fullAmounts = {
             ...Object.fromEntries(
-              orig.transaction_amounts.map((a) => [a.account_id, a.amount])
+              orig.transaction_amounts.map((a) => [a.account_id, a.amount]),
             ),
             ...(edit.amounts ?? {}),
           };
@@ -515,7 +539,7 @@ export function MonthTransactionsTable({
         // Error shown via mutation state
       }
     },
-    [edits, allRows, transactions, accountIds, getDisplayRow, updateTx]
+    [edits, allRows, transactions, accountIds, getDisplayRow, updateTx],
   );
 
   // ---------- Delete ----------
@@ -537,7 +561,15 @@ export function MonthTransactionsTable({
       if (type === "internal_transfer") return [];
       return categories.filter((c) => c.type === type);
     },
-    [categories]
+    [categories],
+  );
+
+  const getSubcategoriesForCategory = useCallback(
+    (categoryId: string | null) => {
+      if (!categoryId) return [];
+      return subcategories.filter((s) => s.category_id === categoryId);
+    },
+    [subcategories],
   );
 
   // ---------- Render ----------
@@ -567,12 +599,17 @@ export function MonthTransactionsTable({
               <option key={val} value={val}>
                 {label}
               </option>
-            )
+            ),
           )}
         </select>
         <select
           value={filterCategoryId}
-          onChange={(e) => setFilterCategoryId(e.target.value)}
+          onChange={(e) => {
+            const nextCategoryId = e.target.value;
+            setFilterCategoryId(nextCategoryId);
+            // Si cambiás de categoría, reseteamos subcategoría para evitar inconsistencia
+            setFilterSubcategoryId("");
+          }}
           className="border-input h-8 rounded-md border bg-transparent px-2 py-1 text-sm"
         >
           <option value="">Todas las categorías</option>
@@ -581,6 +618,26 @@ export function MonthTransactionsTable({
               {c.name}
             </option>
           ))}
+        </select>
+        <select
+          value={filterSubcategoryId}
+          onChange={(e) => setFilterSubcategoryId(e.target.value)}
+          className="border-input h-8 rounded-md border bg-transparent px-2 py-1 text-sm"
+          disabled={!filterCategoryId}
+        >
+          <option value="">
+            {filterCategoryId
+              ? "Todas las subcategorías"
+              : "Elegí una categoría"}
+          </option>
+          {filterCategoryId &&
+            subcategories
+              .filter((s) => s.category_id === filterCategoryId)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
         </select>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -738,10 +795,8 @@ export function MonthTransactionsTable({
                   if (draft) {
                     setDraftRows((prev) =>
                       prev.map((r) =>
-                        r.id === rowId
-                          ? { ...r, type: transferPrevType }
-                          : r
-                      )
+                        r.id === rowId ? { ...r, type: transferPrevType } : r,
+                      ),
                     );
                   } else {
                     setEdit(rowId, { type: transferPrevType });
@@ -787,8 +842,8 @@ export function MonthTransactionsTable({
                               amounts: newAmounts,
                               description: autoDescription,
                             }
-                          : r
-                      )
+                          : r,
+                      ),
                     );
                   } else {
                     setEdit(rowId, {
@@ -817,15 +872,24 @@ export function MonthTransactionsTable({
       <div className="overflow-auto rounded-md border">
         <table className="w-full min-w-[600px] table-fixed text-sm">
           <colgroup>
+            {/* Fecha */}
             <col className="w-28" />
+            {/* Tipo */}
             <col className="w-24" />
-            <col className="w-36" />
+            {/* Categoría */}
+            <col className="w-32" />
+            {/* Subcategoría */}
+            <col className="w-32" />
+            {/* Descripción */}
+            <col className="w-40" />
+            {/* Una columna por cuenta */}
             {accounts.map((acc) => (
               <col key={acc.id} className="w-32" />
             ))}
+            {/* Total */}
             <col className="w-24" />
-            <col className="w-32" />
-            <col className="w-[4.5rem]" />
+            {/* Acciones */}
+            <col className="w-18" />
           </colgroup>
           <thead>
             <tr className="sticky top-0 z-10 border-b bg-muted">
@@ -844,8 +908,14 @@ export function MonthTransactionsTable({
                   )}
                 </span>
               </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+              <th className="sticky top-0 z-10 bg-muted pl-3 pr-8 py-2 text-left font-medium">
                 Tipo
+              </th>
+              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                Categoría
+              </th>
+              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                Subcategoría
               </th>
               <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
                 Descripción
@@ -860,9 +930,6 @@ export function MonthTransactionsTable({
               ))}
               <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-right font-medium tabular-nums">
                 Total
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
-                Categoría
               </th>
               <th className="sticky top-0 z-10 w-[4.5rem] bg-muted px-1 py-2" />
             </tr>
@@ -895,8 +962,8 @@ export function MonthTransactionsTable({
                                   prev.map((r) =>
                                     r.id === row.id
                                       ? { ...r, date: e.target.value }
-                                      : r
-                                  )
+                                      : r,
+                                  ),
                                 )
                               : setEdit(row.id, { date: e.target.value })
                           }
@@ -904,12 +971,11 @@ export function MonthTransactionsTable({
                         />
                       </td>
                       {/* Type */}
-                      <td className="px-3 py-1.5">
+                      <td className="pl-3 pr-8 py-1.5">
                         <select
                           value={display.type}
                           onChange={(e) => {
-                            const newType = e.target
-                              .value as TransactionType;
+                            const newType = e.target.value as TransactionType;
                             if (newType === "internal_transfer") {
                               setTransferPrevType(display.type);
                               setTransferModalRowId(row.id);
@@ -921,8 +987,8 @@ export function MonthTransactionsTable({
                                   prev.map((r) =>
                                     r.id === row.id
                                       ? { ...r, type: newType }
-                                      : r
-                                  )
+                                      : r,
+                                  ),
                                 );
                               } else {
                                 setEdit(row.id, { type: newType });
@@ -937,10 +1003,8 @@ export function MonthTransactionsTable({
                               setDraftRows((prev) =>
                                 prev.map((r) => {
                                   if (r.id !== row.id) return r;
-                                  const updatedAmounts: Record<
-                                    string,
-                                    number
-                                  > = {};
+                                  const updatedAmounts: Record<string, number> =
+                                    {};
                                   for (const accId of accountIds) {
                                     const val = r.amounts[accId] ?? 0;
                                     if (val !== 0)
@@ -955,11 +1019,10 @@ export function MonthTransactionsTable({
                                       ...updatedAmounts,
                                     },
                                   };
-                                })
+                                }),
                               );
                             } else {
-                              const currentAmounts: Record<string, number> =
-                                {};
+                              const currentAmounts: Record<string, number> = {};
                               for (const accId of accountIds) {
                                 const val = getAmountForRow(display, accId);
                                 if (val !== 0)
@@ -995,6 +1058,91 @@ export function MonthTransactionsTable({
                           ))}
                         </select>
                       </td>
+                      {/* Category */}
+                      <td className="px-3 py-1.5">
+                        {display.type === "internal_transfer" ? (
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
+                        ) : (
+                          <select
+                            value={display.category_id ?? ""}
+                            onChange={(e) => {
+                              const nextCategoryId =
+                                e.target.value || (null as string | null);
+                              if (isDraft) {
+                                setDraftRows((prev) =>
+                                  prev.map((r) =>
+                                    r.id === row.id
+                                      ? {
+                                          ...r,
+                                          category_id: nextCategoryId,
+                                          subcategory_id: null,
+                                        }
+                                      : r,
+                                  ),
+                                );
+                              } else {
+                                setEdit(row.id, {
+                                  category_id: nextCategoryId,
+                                  subcategory_id: null,
+                                });
+                              }
+                            }}
+                            className={selectClass}
+                          >
+                            <option value="">Seleccionar categoría</option>
+                            {typeCats.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      {/* Subcategory */}
+                      <td className="px-3 py-1.5">
+                        {display.type === "internal_transfer" ||
+                        !display.category_id ? (
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
+                        ) : (
+                          <select
+                            value={display.subcategory_id ?? ""}
+                            onChange={(e) => {
+                              const nextSubId =
+                                e.target.value || (null as string | null);
+                              if (isDraft) {
+                                setDraftRows((prev) =>
+                                  prev.map((r) =>
+                                    r.id === row.id
+                                      ? {
+                                          ...r,
+                                          subcategory_id: nextSubId,
+                                        }
+                                      : r,
+                                  ),
+                                );
+                              } else {
+                                setEdit(row.id, {
+                                  subcategory_id: nextSubId,
+                                });
+                              }
+                            }}
+                            className={selectClass}
+                          >
+                            <option value="">Sin subcategoría</option>
+                            {getSubcategoriesForCategory(
+                              display.category_id ?? null,
+                            ).map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
                       {/* Description */}
                       <td className="px-3 py-1.5">
                         <Input
@@ -1008,8 +1156,8 @@ export function MonthTransactionsTable({
                                           ...r,
                                           description: e.target.value,
                                         }
-                                      : r
-                                  )
+                                      : r,
+                                  ),
                                 )
                               : setEdit(row.id, {
                                   description: e.target.value,
@@ -1031,10 +1179,7 @@ export function MonthTransactionsTable({
                               : String(amount);
                         const isExpense = display.type === "expense";
                         return (
-                          <td
-                            key={accId}
-                            className="px-3 py-1.5 text-right"
-                          >
+                          <td key={accId} className="px-3 py-1.5 text-right">
                             <div className="relative inline-flex items-center">
                               {isExpense && (
                                 <span className="pointer-events-none absolute left-2 text-sm text-muted-foreground">
@@ -1070,21 +1215,17 @@ export function MonthTransactionsTable({
                                                 [accId]: valueToStore,
                                               },
                                             }
-                                          : r
-                                      )
+                                          : r,
+                                      ),
                                     );
                                   } else {
-                                    const currentAmounts =
-                                      accountIds.reduce(
-                                        (acc, aid) => ({
-                                          ...acc,
-                                          [aid]: getAmountForRow(
-                                            display,
-                                            aid
-                                          ),
-                                        }),
-                                        {} as Record<string, number>
-                                      );
+                                    const currentAmounts = accountIds.reduce(
+                                      (acc, aid) => ({
+                                        ...acc,
+                                        [aid]: getAmountForRow(display, aid),
+                                      }),
+                                      {} as Record<string, number>,
+                                    );
                                     setEdit(row.id, {
                                       amounts: {
                                         ...currentAmounts,
@@ -1109,43 +1250,6 @@ export function MonthTransactionsTable({
                       {/* Total */}
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                         {formatCurrency(total)}
-                      </td>
-                      {/* Category */}
-                      <td className="px-3 py-1.5">
-                        {display.type === "internal_transfer" ? (
-                          <span className="text-sm text-muted-foreground">
-                            —
-                          </span>
-                        ) : (
-                          <select
-                            value={display.category_id ?? ""}
-                            onChange={(e) =>
-                              isDraft
-                                ? setDraftRows((prev) =>
-                                    prev.map((r) =>
-                                      r.id === row.id
-                                        ? {
-                                            ...r,
-                                            category_id:
-                                              e.target.value || null,
-                                          }
-                                        : r
-                                    )
-                                  )
-                                : setEdit(row.id, {
-                                    category_id: e.target.value || null,
-                                  })
-                            }
-                            className={selectClass}
-                          >
-                            <option value="">Seleccionar categoría</option>
-                            {typeCats.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
                       </td>
                       {/* Actions */}
                       <td className="w-[4.5rem] px-1 py-1 align-middle">
@@ -1249,7 +1353,7 @@ export function MonthTransactionsTable({
                       <td className="whitespace-nowrap px-3 py-1.5 text-sm text-muted-foreground">
                         {formatDate(display.date)}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td className="pl-3 pr-8 py-1.5">
                         <Badge
                           variant={
                             TYPE_BADGE_VARIANT[display.type] ?? "adjustment"
@@ -1257,6 +1361,15 @@ export function MonthTransactionsTable({
                         >
                           {TYPE_LABEL[display.type] ?? display.type}
                         </Badge>
+                      </td>
+                      <td className="px-3 py-1.5 text-sm text-muted-foreground">
+                        {categories.find((c) => c.id === display.category_id)
+                          ?.name ?? "—"}
+                      </td>
+                      <td className="px-3 py-1.5 text-sm text-muted-foreground">
+                        {subcategories.find(
+                          (s) => s.id === display.subcategory_id,
+                        )?.name ?? "—"}
                       </td>
                       <td className="max-w-[180px] truncate px-3 py-1.5 text-sm">
                         {display.description || "—"}
@@ -1267,9 +1380,7 @@ export function MonthTransactionsTable({
                           <td
                             key={accId}
                             className={`px-3 py-1.5 text-right text-sm tabular-nums ${
-                              amount < 0
-                                ? "text-red-600 dark:text-red-400"
-                                : ""
+                              amount < 0 ? "text-red-600 dark:text-red-400" : ""
                             }`}
                           >
                             {amount !== 0 ? formatCurrency(amount) : "—"}
@@ -1278,11 +1389,6 @@ export function MonthTransactionsTable({
                       })}
                       <td className="px-3 py-1.5 text-right text-sm font-medium tabular-nums">
                         {formatCurrency(total)}
-                      </td>
-                      <td className="px-3 py-1.5 text-sm text-muted-foreground">
-                        {categories.find(
-                          (c) => c.id === display.category_id
-                        )?.name ?? "—"}
                       </td>
                       <td className="w-[4.5rem] px-1 py-1 align-top">
                         <DropdownMenu>
