@@ -12,6 +12,7 @@ import {
   TrendingDown,
   CalendarDays,
   Tags,
+  Landmark,
 } from "lucide-react";
 import {
   Sidebar,
@@ -148,6 +149,11 @@ export function AppSidebar() {
                 href="/categories"
                 icon={Tags}
                 label="Categorías"
+              />
+              <CollapsedDropdownItem
+                href="/accounts"
+                icon={Landmark}
+                label="Cuentas"
               />
               <CollapsedDropdownItem
                 href="/clients"
