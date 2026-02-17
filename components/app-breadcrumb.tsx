@@ -14,6 +14,7 @@ const pathLabels: Record<string, string> = {
   "/": "Home",
   "/cash-flow": "Flujo de fondos",
   "/categories": "Categorías",
+  "/accounts": "Cuentas",
   "/clients": "Clientes",
   "/shipments": "Envíos",
   "/settings": "Configuración",
