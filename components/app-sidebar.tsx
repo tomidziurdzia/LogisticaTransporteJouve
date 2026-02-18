@@ -10,6 +10,7 @@ import {
   LogOut,
   LucideIcon,
   TrendingDown,
+  BarChart3,
   CalendarDays,
   Tags,
   Landmark,
@@ -144,6 +145,11 @@ export function AppSidebar() {
                 href="/cash-flow"
                 icon={TrendingDown}
                 label="Flujo de fondos"
+              />
+              <CollapsedDropdownItem
+                href="/results"
+                icon={BarChart3}
+                label="Resultados"
               />
               <CollapsedDropdownItem
                 href="/categories"

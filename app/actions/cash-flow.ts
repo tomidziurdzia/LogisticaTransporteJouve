@@ -29,7 +29,7 @@ export type CashFlowData = {
 
 const UNCATEGORIZED_ID = "__uncategorized__";
 
-// ─── Main query ──────────────────────────────────────
+// ─── Main query (base caja: usa month_id) ────────────
 
 export async function getCashFlowData(
   monthIds: string[],
@@ -38,44 +38,34 @@ export async function getCashFlowData(
 
   const supabase = await createClient();
 
-  // 6 parallel queries (2 for transactions to handle accrual_month_id)
-  const [accountsRes, monthsRes, obRes, txByMonthRes, txByAccrualRes, catRes] =
-    await Promise.all([
-      supabase
-        .from("accounts")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name"),
-      supabase
-        .from("months")
-        .select("id, label, year, month")
-        .in("id", monthIds),
-      supabase
-        .from("opening_balances")
-        .select("month_id, account_id, amount")
-        .in("month_id", monthIds),
-      // Transactions registered in selected months
-      supabase
-        .from("transactions")
-        .select(
-          "id, month_id, type, category_id, accrual_month_id, transaction_amounts(account_id, amount)",
-        )
-        .in("month_id", monthIds),
-      // Transactions accrued to selected months (may be registered in other months)
-      supabase
-        .from("transactions")
-        .select(
-          "id, month_id, type, category_id, accrual_month_id, transaction_amounts(account_id, amount)",
-        )
-        .in("accrual_month_id", monthIds),
-      supabase.from("categories").select("id, name").order("name"),
-    ]);
+  // 5 parallel queries
+  const [accountsRes, monthsRes, obRes, txRes, catRes] = await Promise.all([
+    supabase
+      .from("accounts")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("months")
+      .select("id, label, year, month")
+      .in("id", monthIds),
+    supabase
+      .from("opening_balances")
+      .select("month_id, account_id, amount")
+      .in("month_id", monthIds),
+    supabase
+      .from("transactions")
+      .select(
+        "id, month_id, type, category_id, transaction_amounts(account_id, amount)",
+      )
+      .in("month_id", monthIds),
+    supabase.from("categories").select("id, name").order("name"),
+  ]);
 
   if (accountsRes.error) throw new Error(accountsRes.error.message);
   if (monthsRes.error) throw new Error(monthsRes.error.message);
   if (obRes.error) throw new Error(obRes.error.message);
-  if (txByMonthRes.error) throw new Error(txByMonthRes.error.message);
-  if (txByAccrualRes.error) throw new Error(txByAccrualRes.error.message);
+  if (txRes.error) throw new Error(txRes.error.message);
   if (catRes.error) throw new Error(catRes.error.message);
 
   const accounts = accountsRes.data ?? [];
@@ -85,39 +75,20 @@ export async function getCashFlowData(
   const openingBalances = obRes.data ?? [];
   const categories = catRes.data ?? [];
 
-  const selectedMonthIds = new Set(monthIds);
   const categoryNameMap = new Map<string, string>();
   for (const c of categories) {
     categoryNameMap.set(c.id, c.name);
   }
-
-  // ─── Deduplicate & resolve effective month ─────────
 
   type RawTx = {
     id: string;
     month_id: string;
     type: string;
     category_id: string | null;
-    accrual_month_id: string | null;
     transaction_amounts: { account_id: string; amount: number }[];
   };
 
-  const txMap = new Map<string, RawTx>();
-  for (const tx of (txByMonthRes.data ?? []) as RawTx[]) {
-    txMap.set(tx.id, tx);
-  }
-  for (const tx of (txByAccrualRes.data ?? []) as RawTx[]) {
-    txMap.set(tx.id, tx); // dedup by id
-  }
-
-  // Resolve effective month and filter to selected months only
-  const transactions: (RawTx & { effectiveMonthId: string })[] = [];
-  for (const tx of txMap.values()) {
-    const effectiveMonthId = tx.accrual_month_id ?? tx.month_id;
-    if (selectedMonthIds.has(effectiveMonthId)) {
-      transactions.push({ ...tx, effectiveMonthId });
-    }
-  }
+  const transactions = (txRes.data ?? []) as RawTx[];
 
   // ─── SALDO INICIAL ────────────────────────────────
 
@@ -144,11 +115,8 @@ export async function getCashFlowData(
 
   // ─── Aggregate transactions ────────────────────────
 
-  // Income by category per month
   const incomeMap = new Map<string, Map<string, number>>();
-  // Expense by category per month
   const expenseMap = new Map<string, Map<string, number>>();
-  // All tx amounts by account per month (for closing balance)
   const txByAccountMonth = new Map<string, number>();
 
   for (const tx of transactions) {
@@ -157,7 +125,7 @@ export async function getCashFlowData(
 
     // Accumulate per-account-per-month for closing balance (ALL types)
     for (const ta of amounts) {
-      const key = `${tx.effectiveMonthId}|${ta.account_id}`;
+      const key = `${tx.month_id}|${ta.account_id}`;
       txByAccountMonth.set(
         key,
         (txByAccountMonth.get(key) ?? 0) + Number(ta.amount),
@@ -170,17 +138,11 @@ export async function getCashFlowData(
     if (tx.type === "income") {
       if (!incomeMap.has(catKey)) incomeMap.set(catKey, new Map());
       const catMap = incomeMap.get(catKey)!;
-      catMap.set(
-        tx.effectiveMonthId,
-        (catMap.get(tx.effectiveMonthId) ?? 0) + txTotal,
-      );
+      catMap.set(tx.month_id, (catMap.get(tx.month_id) ?? 0) + txTotal);
     } else if (tx.type === "expense") {
       if (!expenseMap.has(catKey)) expenseMap.set(catKey, new Map());
       const catMap = expenseMap.get(catKey)!;
-      catMap.set(
-        tx.effectiveMonthId,
-        (catMap.get(tx.effectiveMonthId) ?? 0) + txTotal,
-      );
+      catMap.set(tx.month_id, (catMap.get(tx.month_id) ?? 0) + txTotal);
     }
     // internal_transfer and adjustment: only affect closing balance
   }
