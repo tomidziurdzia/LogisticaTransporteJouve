@@ -38,9 +38,9 @@ export function CashFlowTable({ data }: CashFlowTableProps) {
     );
   }
 
-  function renderDataRow(row: CashFlowRow) {
+  function renderDataRow(row: CashFlowRow, keyPrefix: string) {
     return (
-      <tr key={row.id} className="border-b border-border/50">
+      <tr key={`${keyPrefix}-${row.id}`} className="border-b border-border/50">
         <td className="sticky left-0 z-10 bg-background px-4 py-1.5 text-sm text-foreground">
           {row.label}
         </td>
@@ -157,7 +157,7 @@ export function CashFlowTable({ data }: CashFlowTableProps) {
     return (
       <>
         {renderSectionHeader(section.label, `${sectionKey}-header`)}
-        {section.rows.map((row) => renderDataRow(row))}
+        {section.rows.map((row) => renderDataRow(row, sectionKey))}
         {renderSubtotalRow("Subtotal", section.subtotals, `${sectionKey}-subtotal`)}
       </>
     );

@@ -36,13 +36,21 @@ export default function CashFlowPage() {
   );
 
   const toggleMonth = (id: string) => {
-    setHasUserInteracted(true);
-    setSelectedIds((prev) => {
-      const base = prev.length === 0 ? defaultSelected : prev;
-      return base.includes(id)
-        ? base.filter((x) => x !== id)
-        : [...base, id];
-    });
+    if (!hasUserInteracted) {
+      // Primer click: inicializar selectedIds con defaults, luego toggle
+      setHasUserInteracted(true);
+      setSelectedIds(
+        defaultSelected.includes(id)
+          ? defaultSelected.filter((x) => x !== id)
+          : [...defaultSelected, id],
+      );
+      return;
+    }
+    setSelectedIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id],
+    );
   };
 
   if (loadingMonths) {
