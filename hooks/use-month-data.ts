@@ -12,7 +12,5 @@ export function useMonthData(monthId: string) {
     queryKey: monthDataQueryKey(monthId),
     queryFn: () => getMonthData(monthId),
     enabled: !!monthId,
-    // No necesitamos refetchInterval porque usamos Supabase Realtime
-    // que actualiza instantáneamente cuando cambian las transacciones
   });
 }

@@ -13,8 +13,6 @@ export function useMonths() {
   return useQuery({
     queryKey: monthsQueryKey,
     queryFn: () => getMonths(),
-    // No necesitamos refetchInterval porque usamos Supabase Realtime
-    // que actualiza instantáneamente cuando cambian las transacciones
   });
 }
 

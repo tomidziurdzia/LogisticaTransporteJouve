@@ -31,7 +31,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Sincronización en tiempo real (multiusuario)
 
-Cuando vos u otro usuario crea o modifica meses, cuentas, categorías, subcategorías o transacciones (desde la app, n8n o el bot de WhatsApp), el cambio se refleja al instante en todos los clientes abiertos gracias a **Supabase Realtime**.
+Cuando vos u otro usuario crea o modifica meses, cuentas, categorías, subcategorías o transacciones, el cambio se refleja al instante en todos los clientes abiertos gracias a **Supabase Realtime**.
 
 ### Cómo habilitarlo
 
