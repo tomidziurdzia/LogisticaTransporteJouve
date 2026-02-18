@@ -14,6 +14,7 @@ import { useMonthData } from "@/hooks/use-month-data";
 const pathLabels: Record<string, string> = {
   "/": "Períodos",
   "/cash-flow": "Flujo de fondos",
+  "/results": "Estado de resultados",
   "/categories": "Categorías",
   "/accounts": "Cuentas",
   "/clients": "Clientes",
