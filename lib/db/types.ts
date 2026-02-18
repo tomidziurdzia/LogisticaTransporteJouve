@@ -71,6 +71,7 @@ export interface Transaction {
   category_id: string | null;
   subcategory_id: string | null;
   is_operational: boolean;
+  accrual_month_id: string | null;
   row_order: number;
   created_at: string;
   updated_at: string;

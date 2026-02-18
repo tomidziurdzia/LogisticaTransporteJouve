@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMonthData } from "@/hooks/use-month-data";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useCategories, useSubcategories } from "@/hooks/use-categories";
+import { useMonths } from "@/hooks/use-months";
 import { formatCurrency } from "@/lib/format";
 import { MonthTransactionsTable } from "./month-transactions-table";
 
@@ -18,6 +19,7 @@ export function MonthView({ monthId }: MonthViewProps) {
   const { data: accounts, isLoading: accLoading } = useAccounts();
   const { data: categories } = useCategories();
   const { data: subcategories } = useSubcategories();
+  const { data: months } = useMonths();
 
   if (monthLoading || accLoading) {
     return (
@@ -169,6 +171,7 @@ export function MonthView({ monthId }: MonthViewProps) {
         accounts={accounts ?? []}
         categories={categories ?? []}
         subcategories={subcategories ?? []}
+        months={months ?? []}
         transactions={transactions}
         nextRowOrder={nextRowOrder}
       />

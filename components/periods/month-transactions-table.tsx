@@ -15,6 +15,7 @@ import {
 import type {
   Account,
   Category,
+  Month,
   Subcategory,
   TransactionType,
   TransactionWithAmounts,
@@ -103,6 +104,7 @@ interface DraftRow {
   category_id: string | null;
   subcategory_id: string | null;
   is_operational: boolean;
+  accrual_month_id: string | null;
   amounts: Record<string, number>;
 }
 
@@ -113,6 +115,7 @@ type RowEdit = Partial<{
   category_id: string | null;
   subcategory_id: string | null;
   is_operational: boolean;
+  accrual_month_id: string | null;
   amounts: Record<string, number>;
 }>;
 
@@ -149,6 +152,9 @@ function mergeRow(
       ...(edit.is_operational !== undefined && {
         is_operational: edit.is_operational,
       }),
+      ...(edit.accrual_month_id !== undefined && {
+        accrual_month_id: edit.accrual_month_id,
+      }),
       ...(edit.amounts !== undefined && {
         transaction_amounts: amounts.map((a) => ({
           id: "",
@@ -172,6 +178,7 @@ interface MonthTransactionsTableProps {
   accounts: Account[];
   categories: Category[];
   subcategories: Subcategory[];
+  months: Month[];
   transactions: TransactionWithAmounts[];
   nextRowOrder: number;
 }
@@ -183,6 +190,7 @@ export function MonthTransactionsTable({
   accounts,
   categories,
   subcategories,
+  months,
   transactions,
   nextRowOrder,
 }: MonthTransactionsTableProps) {
@@ -375,6 +383,7 @@ export function MonthTransactionsTable({
         category_id: null,
         subcategory_id: null,
         is_operational: true,
+        accrual_month_id: null,
         amounts: {},
       },
     ]);
@@ -465,6 +474,10 @@ export function MonthTransactionsTable({
           subcategory_id: displaySubcategoryId ?? null,
           is_operational:
             "is_operational" in display ? display.is_operational : true,
+          accrual_month_id:
+            "accrual_month_id" in display
+              ? (display.accrual_month_id as string | null)
+              : null,
           row_order: nextRowOrder + draftIndex,
           amounts,
         });
@@ -568,6 +581,8 @@ export function MonthTransactionsTable({
           payload.subcategory_id = edit.subcategory_id;
         if (edit.is_operational !== undefined)
           payload.is_operational = edit.is_operational;
+        if (edit.accrual_month_id !== undefined)
+          payload.accrual_month_id = edit.accrual_month_id;
         // Internal transfers shouldn't keep category/subcategory.
         if (display.type === "internal_transfer") {
           payload.category_id = null;
@@ -1016,6 +1031,8 @@ export function MonthTransactionsTable({
             <col className="w-24" />
             {/* Op */}
             <col className="w-20" />
+            {/* Imputación */}
+            <col className="w-24" />
             {/* Acciones */}
             <col className="w-18" />
           </colgroup>
@@ -1061,6 +1078,9 @@ export function MonthTransactionsTable({
               </th>
               <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
                 Op
+              </th>
+              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
+                Imputación
               </th>
               <th className="sticky top-0 z-10 w-18 bg-muted px-1 py-2" />
             </tr>
@@ -1455,6 +1475,48 @@ export function MonthTransactionsTable({
                           className="size-4 rounded border-input accent-primary"
                         />
                       </td>
+                      {/* Accrual month select */}
+                      <td className="px-3 py-1.5">
+                        <select
+                          value={
+                            "accrual_month_id" in display
+                              ? (display.accrual_month_id as string) ?? ""
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value || null;
+                            if (isDraft) {
+                              setDraftRows((prev) =>
+                                prev.map((r) =>
+                                  r.id === row.id
+                                    ? { ...r, accrual_month_id: val }
+                                    : r,
+                                ),
+                              );
+                            } else {
+                              setEdit(row.id, {
+                                accrual_month_id: val,
+                              });
+                            }
+                          }}
+                          className={selectClass}
+                        >
+                          <option value="">
+                            Mes actual
+                          </option>
+                          {[...months]
+                            .filter((m) => m.id !== monthId)
+                            .sort(
+                              (a, b) =>
+                                a.year - b.year || a.month - b.month,
+                            )
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.label}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
                       {/* Actions */}
                       <td className="w-18 px-1 py-1 align-middle">
                         {isDraft ? (
@@ -1605,6 +1667,32 @@ export function MonthTransactionsTable({
                             Op
                           </Badge>
                         )}
+                      </td>
+                      <td className="px-3 py-1.5 text-center text-sm">
+                        {(() => {
+                          const amid =
+                            "accrual_month_id" in display
+                              ? (display.accrual_month_id as string | null)
+                              : null;
+                          const isSame = !amid || amid === monthId;
+                          const accrualMonth = amid
+                            ? months.find((m) => m.id === amid)
+                            : null;
+                          const label = accrualMonth
+                            ? accrualMonth.label
+                            : "Mes actual";
+                          return (
+                            <span
+                              className={
+                                isSame
+                                  ? "text-muted-foreground"
+                                  : "font-medium text-primary"
+                              }
+                            >
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="w-18 px-1 py-1 align-top">
                         <DropdownMenu>
