@@ -153,12 +153,17 @@ export function CashFlowTable({ data }: CashFlowTableProps) {
     );
   }
 
-  function renderSection(section: CashFlowSection, sectionKey: string) {
+  function renderSection(
+    section: CashFlowSection,
+    sectionKey: string,
+    showSubtotal = true,
+  ) {
     return (
       <>
         {renderSectionHeader(section.label, `${sectionKey}-header`)}
         {section.rows.map((row) => renderDataRow(row, sectionKey))}
-        {renderSubtotalRow("Subtotal", section.subtotals, `${sectionKey}-subtotal`)}
+        {showSubtotal &&
+          renderSubtotalRow("Subtotal", section.subtotals, `${sectionKey}-subtotal`)}
       </>
     );
   }
@@ -190,7 +195,7 @@ export function CashFlowTable({ data }: CashFlowTableProps) {
           {renderSpacerRow("spacer-1")}
 
           {/* ENTRADAS */}
-          {renderSection(incomes, "income")}
+          {renderSection(incomes, "income", false)}
 
           {/* TOTAL INGRESOS */}
           {renderTotalRow("TOTAL INGRESOS", totalIncome, "total-income")}
@@ -198,7 +203,7 @@ export function CashFlowTable({ data }: CashFlowTableProps) {
           {renderSpacerRow("spacer-2")}
 
           {/* SALIDAS */}
-          {renderSection(expenses, "expense")}
+          {renderSection(expenses, "expense", false)}
 
           {/* TOTAL EGRESOS */}
           {renderTotalRow("TOTAL EGRESOS", totalExpense, "total-expense")}
