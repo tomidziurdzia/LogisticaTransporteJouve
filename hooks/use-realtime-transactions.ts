@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { monthDataQueryKey } from "@/hooks/use-month-data";
 import { monthsQueryKey } from "@/hooks/use-months";
+import { subcategoriesQueryKey } from "@/hooks/use-categories";
 
 /** Prefijos para invalidar todas las queries de flujo de fondos y resultados */
 const CASH_FLOW_QUERY_KEY = ["cashFlow"] as const;
@@ -42,6 +43,9 @@ export function useRealtimeTransactions() {
           queryClient.invalidateQueries({ queryKey: monthsQueryKey });
           queryClient.invalidateQueries({ queryKey: CASH_FLOW_QUERY_KEY });
           queryClient.invalidateQueries({ queryKey: RESULTS_QUERY_KEY });
+          // Invalidar subcategorías para asegurar que se muestren correctamente
+          // cuando cambia el subcategory_id de una transacción
+          queryClient.invalidateQueries({ queryKey: subcategoriesQueryKey });
         }
       )
       .subscribe();

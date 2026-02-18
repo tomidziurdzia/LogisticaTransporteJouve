@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/transactions";
 import { monthsQueryKey } from "@/hooks/use-months";
 import { monthDataQueryKey } from "@/hooks/use-month-data";
+import { subcategoriesQueryKey } from "@/hooks/use-categories";
 
 const CASH_FLOW_QUERY_KEY = ["cashFlow"] as const;
 const RESULTS_QUERY_KEY = ["results"] as const;
@@ -22,6 +23,9 @@ function invalidateTransactionQueries(
   qc.invalidateQueries({ queryKey: monthsQueryKey });
   qc.invalidateQueries({ queryKey: CASH_FLOW_QUERY_KEY });
   qc.invalidateQueries({ queryKey: RESULTS_QUERY_KEY });
+  // Invalidar subcategorías para asegurar que se muestren correctamente
+  // cuando cambia el subcategory_id de una transacción
+  qc.invalidateQueries({ queryKey: subcategoriesQueryKey });
 }
 
 export function useCreateTransaction(monthId: string) {
