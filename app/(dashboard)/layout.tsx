@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppBreadcrumb } from "@/components/app-breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
+import { RealtimeTransactionsSync } from "@/components/realtime-transactions-sync";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
@@ -26,6 +27,7 @@ async function DashboardLayoutContent({
 
   return (
     <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
+      <RealtimeTransactionsSync />
       <AppSidebar />
       <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">

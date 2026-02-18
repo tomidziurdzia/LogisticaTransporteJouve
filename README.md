@@ -29,6 +29,24 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Sincronización en tiempo real (multiusuario)
+
+Cuando un gasto (o cualquier transacción) se ingresa por la app, por n8n o por el bot de WhatsApp, el cambio se refleja al instante en todos los clientes abiertos gracias a **Supabase Realtime**.
+
+### Cómo habilitarlo
+
+1. En el Dashboard de Supabase: **Database → Replication** → en la publicación `supabase_realtime` activá la tabla **`transactions`**.
+2. O ejecutá la migración:
+   ```bash
+   # En Supabase SQL Editor o con supabase db push
+   # Contenido de migrations/006_realtime_transactions.sql:
+   alter publication supabase_realtime add table public.transactions;
+   ```
+
+La app ya está suscrita a cambios en `transactions`; al habilitar Realtime en esa tabla, la invalidación de React Query y la actualización de la UI en todos los sitios es automática.
+
+---
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
