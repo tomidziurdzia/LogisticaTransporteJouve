@@ -31,19 +31,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Sincronización en tiempo real (multiusuario)
 
-Cuando un gasto (o cualquier transacción) se ingresa por la app, por n8n o por el bot de WhatsApp, el cambio se refleja al instante en todos los clientes abiertos gracias a **Supabase Realtime**.
+Cuando vos u otro usuario crea o modifica meses, cuentas, categorías, subcategorías o transacciones (desde la app, n8n o el bot de WhatsApp), el cambio se refleja al instante en todos los clientes abiertos gracias a **Supabase Realtime**.
 
 ### Cómo habilitarlo
 
-1. En el Dashboard de Supabase: **Database → Replication** → en la publicación `supabase_realtime` activá la tabla **`transactions`**.
-2. O ejecutá la migración:
-   ```bash
-   # En Supabase SQL Editor o con supabase db push
-   # Contenido de migrations/006_realtime_transactions.sql:
-   alter publication supabase_realtime add table public.transactions;
-   ```
+1. En el Dashboard de Supabase: **Database → Replication** → en la publicación `supabase_realtime` activá las tablas: **`months`**, **`accounts`**, **`categories`**, **`subcategories`**, **`transactions`**, **`transaction_amounts`**, **`opening_balances`**.
+2. O ejecutá la migración `migrations/006_realtime_transactions.sql` en el SQL Editor (o con `supabase db push`).
 
-La app ya está suscrita a cambios en `transactions`; al habilitar Realtime en esa tabla, la invalidación de React Query y la actualización de la UI en todos los sitios es automática.
+La app ya está suscrita a cambios en todas esas tablas; al habilitar Realtime, la invalidación de React Query y la actualización de la UI en todas las pestañas es automática.
 
 ---
 
