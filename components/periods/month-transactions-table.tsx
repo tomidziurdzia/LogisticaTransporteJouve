@@ -54,11 +54,6 @@ const TYPE_BADGE_VARIANT: Record<
   adjustment: "adjustment",
 };
 
-const MONTH_SHORT = [
-  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
-];
-
 function toYMD(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -109,8 +104,7 @@ interface DraftRow {
   category_id: string | null;
   subcategory_id: string | null;
   is_operational: boolean;
-  accrual_month: number | null;
-  accrual_year: number | null;
+  accrual_month_id: string | null;
   amounts: Record<string, number>;
 }
 
@@ -121,8 +115,7 @@ type RowEdit = Partial<{
   category_id: string | null;
   subcategory_id: string | null;
   is_operational: boolean;
-  accrual_month: number | null;
-  accrual_year: number | null;
+  accrual_month_id: string | null;
   amounts: Record<string, number>;
 }>;
 
@@ -159,11 +152,8 @@ function mergeRow(
       ...(edit.is_operational !== undefined && {
         is_operational: edit.is_operational,
       }),
-      ...(edit.accrual_month !== undefined && {
-        accrual_month: edit.accrual_month,
-      }),
-      ...(edit.accrual_year !== undefined && {
-        accrual_year: edit.accrual_year,
+      ...(edit.accrual_month_id !== undefined && {
+        accrual_month_id: edit.accrual_month_id,
       }),
       ...(edit.amounts !== undefined && {
         transaction_amounts: amounts.map((a) => ({
@@ -179,115 +169,6 @@ function mergeRow(
   return { ...row, ...edit } as DraftRow;
 }
 
-// ---------- Accrual Month Picker ----------
-
-function AccrualMonthPicker({
-  value,
-  periodMonth,
-  periodYear,
-  onChange,
-}: {
-  value: { month: number | null; year: number | null };
-  periodMonth: number;
-  periodYear: number;
-  onChange: (month: number | null, year: number | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const effectiveMonth = value.month ?? periodMonth;
-  const effectiveYear = value.year ?? periodYear;
-  const [viewYear, setViewYear] = useState(effectiveYear);
-  const isSame = effectiveMonth === periodMonth && effectiveYear === periodYear;
-  const label = `${MONTH_SHORT[effectiveMonth - 1]} ${String(effectiveYear).slice(2)}`;
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (o) setViewYear(effectiveYear);
-      }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={`h-8 gap-1 px-2 text-xs ${isSame ? "text-muted-foreground" : "font-medium text-primary"}`}
-        >
-          <CalendarDays className="size-3.5" />
-          {label}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-3" align="center">
-        {/* Year nav */}
-        <div className="mb-2 flex items-center justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="h-7 w-7"
-            onClick={() => setViewYear((y) => y - 1)}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="text-sm font-medium">{viewYear}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="h-7 w-7"
-            onClick={() => setViewYear((y) => y + 1)}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-        {/* Month grid 4×3 */}
-        <div className="grid grid-cols-4 gap-1">
-          {MONTH_SHORT.map((name, idx) => {
-            const m = idx + 1;
-            const isSelected = m === effectiveMonth && viewYear === effectiveYear;
-            const isPeriod = m === periodMonth && viewYear === periodYear;
-            return (
-              <Button
-                key={m}
-                type="button"
-                variant={isSelected ? "default" : "ghost"}
-                size="sm"
-                className={`h-8 text-xs ${isPeriod && !isSelected ? "ring-1 ring-primary/40" : ""}`}
-                onClick={() => {
-                  if (m === periodMonth && viewYear === periodYear) {
-                    onChange(null, null);
-                  } else {
-                    onChange(m, viewYear);
-                  }
-                  setOpen(false);
-                }}
-              >
-                {name}
-              </Button>
-            );
-          })}
-        </div>
-        {/* Reset */}
-        {!isSame && (
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="mt-2 h-6 w-full text-xs"
-            onClick={() => {
-              onChange(null, null);
-              setOpen(false);
-            }}
-          >
-            Resetear a mes en curso
-          </Button>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // ---------- Component ----------
 
 interface MonthTransactionsTableProps {
@@ -297,6 +178,7 @@ interface MonthTransactionsTableProps {
   accounts: Account[];
   categories: Category[];
   subcategories: Subcategory[];
+  months: Month[];
   transactions: TransactionWithAmounts[];
   nextRowOrder: number;
 }
@@ -308,6 +190,7 @@ export function MonthTransactionsTable({
   accounts,
   categories,
   subcategories,
+  months,
   transactions,
   nextRowOrder,
 }: MonthTransactionsTableProps) {
@@ -500,8 +383,7 @@ export function MonthTransactionsTable({
         category_id: null,
         subcategory_id: null,
         is_operational: true,
-        accrual_month: null,
-        accrual_year: null,
+        accrual_month_id: null,
         amounts: {},
       },
     ]);
@@ -592,10 +474,10 @@ export function MonthTransactionsTable({
           subcategory_id: displaySubcategoryId ?? null,
           is_operational:
             "is_operational" in display ? display.is_operational : true,
-          accrual_month:
-            "accrual_month" in display ? display.accrual_month : null,
-          accrual_year:
-            "accrual_year" in display ? display.accrual_year : null,
+          accrual_month_id:
+            "accrual_month_id" in display
+              ? (display.accrual_month_id as string | null)
+              : null,
           row_order: nextRowOrder + draftIndex,
           amounts,
         });
@@ -699,10 +581,8 @@ export function MonthTransactionsTable({
           payload.subcategory_id = edit.subcategory_id;
         if (edit.is_operational !== undefined)
           payload.is_operational = edit.is_operational;
-        if (edit.accrual_month !== undefined)
-          payload.accrual_month = edit.accrual_month;
-        if (edit.accrual_year !== undefined)
-          payload.accrual_year = edit.accrual_year;
+        if (edit.accrual_month_id !== undefined)
+          payload.accrual_month_id = edit.accrual_month_id;
         // Internal transfers shouldn't keep category/subcategory.
         if (display.type === "internal_transfer") {
           payload.category_id = null;
@@ -1595,42 +1475,47 @@ export function MonthTransactionsTable({
                           className="size-4 rounded border-input accent-primary"
                         />
                       </td>
-                      {/* Accrual month popover */}
-                      <td className="px-3 py-1.5 text-center">
-                        <AccrualMonthPicker
-                          value={{
-                            month:
-                              "accrual_month" in display
-                                ? (display.accrual_month as number | null)
-                                : null,
-                            year:
-                              "accrual_year" in display
-                                ? (display.accrual_year as number | null)
-                                : null,
-                          }}
-                          periodMonth={monthNumber}
-                          periodYear={monthYear}
-                          onChange={(m, y) => {
+                      {/* Accrual month select */}
+                      <td className="px-3 py-1.5">
+                        <select
+                          value={
+                            "accrual_month_id" in display
+                              ? (display.accrual_month_id as string) ?? ""
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value || null;
                             if (isDraft) {
                               setDraftRows((prev) =>
                                 prev.map((r) =>
                                   r.id === row.id
-                                    ? {
-                                        ...r,
-                                        accrual_month: m,
-                                        accrual_year: y,
-                                      }
+                                    ? { ...r, accrual_month_id: val }
                                     : r,
                                 ),
                               );
                             } else {
                               setEdit(row.id, {
-                                accrual_month: m,
-                                accrual_year: y,
+                                accrual_month_id: val,
                               });
                             }
                           }}
-                        />
+                          className={selectClass}
+                        >
+                          <option value="">
+                            Mes actual
+                          </option>
+                          {[...months]
+                            .filter((m) => m.id !== monthId)
+                            .sort(
+                              (a, b) =>
+                                a.year - b.year || a.month - b.month,
+                            )
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.label}
+                              </option>
+                            ))}
+                        </select>
                       </td>
                       {/* Actions */}
                       <td className="w-18 px-1 py-1 align-middle">
@@ -1785,20 +1670,17 @@ export function MonthTransactionsTable({
                       </td>
                       <td className="px-3 py-1.5 text-center text-sm">
                         {(() => {
-                          const am =
-                            "accrual_month" in display
-                              ? (display.accrual_month as number | null)
+                          const amid =
+                            "accrual_month_id" in display
+                              ? (display.accrual_month_id as string | null)
                               : null;
-                          const ay =
-                            "accrual_year" in display
-                              ? (display.accrual_year as number | null)
-                              : null;
-                          const effectiveMonth = am ?? monthNumber;
-                          const effectiveYear = ay ?? monthYear;
-                          const isSame =
-                            effectiveMonth === monthNumber &&
-                            effectiveYear === monthYear;
-                          const label = `${MONTH_SHORT[effectiveMonth - 1]} ${String(effectiveYear).slice(2)}`;
+                          const isSame = !amid || amid === monthId;
+                          const accrualMonth = amid
+                            ? months.find((m) => m.id === amid)
+                            : null;
+                          const label = accrualMonth
+                            ? accrualMonth.label
+                            : "Mes actual";
                           return (
                             <span
                               className={
