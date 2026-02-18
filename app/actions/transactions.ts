@@ -11,6 +11,7 @@ export interface CreateTransactionInput {
   category_id?: string | null;
   subcategory_id?: string | null;
   is_operational?: boolean;
+  accrual_month_id?: string | null;
   row_order?: number;
   amounts: { account_id: string; amount: number }[];
 }
@@ -30,6 +31,7 @@ export async function createTransaction(
       category_id: input.category_id ?? null,
       subcategory_id: input.subcategory_id ?? null,
       is_operational: input.is_operational ?? true,
+      accrual_month_id: input.accrual_month_id ?? null,
       row_order: input.row_order ?? 0,
     })
     .select("id")
@@ -64,6 +66,7 @@ export interface UpdateTransactionInput {
   category_id?: string | null;
   subcategory_id?: string | null;
   is_operational?: boolean;
+  accrual_month_id?: string | null;
   row_order?: number;
   amounts?: { account_id: string; amount: number }[];
 }
@@ -85,6 +88,8 @@ export async function updateTransaction(
     fields.subcategory_id = input.subcategory_id;
   if (input.is_operational !== undefined)
     fields.is_operational = input.is_operational;
+  if (input.accrual_month_id !== undefined)
+    fields.accrual_month_id = input.accrual_month_id;
   if (input.row_order !== undefined) fields.row_order = input.row_order;
 
   const { error: txErr } = await supabase
