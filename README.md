@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Logística Transporte Jouve
 
-## Getting Started
+Aplicación de gestión financiera interna (cuentas, categorías, períodos mensuales, flujo de caja y resultados).
 
-First, run the development server:
+## Desarrollo local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Bot de WhatsApp para registrar gastos
 
-## Learn More
+Se agregó un webhook para recibir mensajes de WhatsApp (vía Twilio) y crear gastos automáticamente en la app.
 
-To learn more about Next.js, take a look at the following resources:
+### Endpoint
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `POST /api/whatsapp/webhook`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Twilio debe enviar mensajes entrantes a esa URL.
 
-## Deploy on Vercel
+### Variables de entorno
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Además de las variables actuales de Supabase, necesitás:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `SUPABASE_SERVICE_ROLE_KEY`: clave service role para insertar registros desde el webhook.
+- `TWILIO_AUTH_TOKEN` (recomendado): para validar la firma `X-Twilio-Signature`.
+- `WHATSAPP_DEFAULT_ACCOUNT_NAME` (opcional): cuenta por defecto (si no se envía en el mensaje).
+
+### Formato del mensaje
+
+```text
+gasto <monto> | <categoria> | <descripcion> | <cuenta opcional> | <fecha opcional YYYY-MM-DD>
+```
+
+Ejemplo:
+
+```text
+gasto 18500 | Combustibles | Carga de gasoil | Galicia | 2026-02-18
+```
+
+### Comportamiento
+
+- Si no enviás fecha, usa la fecha actual.
+- Si no enviás cuenta, usa `WHATSAPP_DEFAULT_ACCOUNT_NAME`; si no existe, usa `Caja`.
+- Si el mes actual no existe, lo crea automáticamente.
+- El gasto se guarda como `expense` y el monto se registra negativo en `transaction_amounts`.
+- La descripción queda prefijada con el número de origen de WhatsApp para trazabilidad.
+
+### Respuestas rápidas
+
+- Enviá `ayuda` para recibir el formato esperado.
+- Si la categoría o la cuenta no existen, el bot responde con el error para corregir el mensaje.
