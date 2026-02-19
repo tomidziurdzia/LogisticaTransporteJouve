@@ -108,7 +108,10 @@ export async function POST(request: Request) {
   const body = new URLSearchParams(bodyText);
 
   const signature = request.headers.get("x-twilio-signature");
-  if (process.env.TWILIO_AUTH_TOKEN && signature) {
+  if (process.env.TWILIO_AUTH_TOKEN) {
+    if (!signature) {
+      return xmlResponse("Firma requerida.", 403);
+    }
     if (!isValidTwilioRequest({ request, body, signature })) {
       return xmlResponse("Firma inválida.", 403);
     }

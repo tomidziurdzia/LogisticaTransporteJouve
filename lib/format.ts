@@ -22,7 +22,12 @@ export function formatAmountForInput(
   return isExpense ? `-${formatted}` : formatted;
 }
 
-/** Parsea un valor ingresado en es-AR (acepta "1.234,56", "1234,56", "1234.56"). */
+/**
+ * Parsea un valor en formato es-AR:
+ * - Con coma decimal: "1.234,56" → 1234.56, "10.000" con coma no aplica.
+ * - Sin coma: "10.000" (miles) → 10000; "10,50" o "10.5" (decimal) → 10.5.
+ * Heurística: si hay coma → es-AR (punto=miles, coma=decimal). Si solo punto y la parte tras el último punto tiene 3 dígitos → miles; si tiene ≤2 → decimal.
+ */
 export function parseLocaleAmount(value: string): number {
   const trimmed = value.trim().replace(/\s/g, "");
   if (trimmed === "" || trimmed === "-") return NaN;
@@ -31,12 +36,16 @@ export function parseLocaleAmount(value: string): number {
   let normalized: string;
   if (withoutSign.includes(",")) {
     normalized = withoutSign.replace(/\./g, "").replace(",", ".");
-  } else {
+  } else if (withoutSign.includes(".")) {
     const parts = withoutSign.split(".");
-    normalized =
-      parts.length === 1
-        ? withoutSign
-        : parts.slice(0, -1).join("") + "." + parts[parts.length - 1];
+    const lastPart = parts[parts.length - 1] ?? "";
+    if (parts.length === 2 && lastPart.length <= 2) {
+      normalized = withoutSign;
+    } else {
+      normalized = withoutSign.replace(/\./g, "");
+    }
+  } else {
+    normalized = withoutSign;
   }
   const num = parseFloat(normalized);
   return Number.isNaN(num) ? NaN : (negative ? -num : num);

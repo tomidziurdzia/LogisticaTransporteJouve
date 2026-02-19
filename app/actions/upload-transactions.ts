@@ -83,6 +83,19 @@ export async function approveUploadTransaction(
 
   const description = row.tx_ref ? `[Upload] ${row.tx_ref}` : "[Upload]";
 
+  // Marcar como procesado primero para evitar duplicados si el usuario reintenta
+  const { data: updated, error: updateErr } = await supabase
+    .from("upload_transaction")
+    .update({ status: "processed" })
+    .eq("id", uploadId)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (updateErr || !updated) {
+    throw new Error("Transacción pendiente no encontrada o ya procesada.");
+  }
+
   await createTransaction({
     month_id: monthId,
     date,
@@ -93,13 +106,6 @@ export async function approveUploadTransaction(
     row_order: 0,
     amounts: [{ account_id, amount: signedAmount }],
   });
-
-  const { error: updateErr } = await supabase
-    .from("upload_transaction")
-    .update({ status: "processed" })
-    .eq("id", uploadId);
-
-  if (updateErr) throw new Error(updateErr.message);
 
   return { monthId };
 }

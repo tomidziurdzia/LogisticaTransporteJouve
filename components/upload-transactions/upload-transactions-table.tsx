@@ -166,6 +166,8 @@ export function UploadTransactionsTable({
   const handleTypeChange = useCallback(
     (rowId: string, newType: "income" | "expense", currentAmount: string) => {
       setEdit(rowId, "type", newType);
+      setEdit(rowId, "category_id", "");
+      setEdit(rowId, "subcategory_id", "");
       const num = parseLocaleAmount(currentAmount);
       if (Number.isNaN(num)) return;
       if (newType === "expense" && num > 0) {
