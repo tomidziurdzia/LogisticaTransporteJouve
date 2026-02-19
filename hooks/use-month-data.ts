@@ -12,5 +12,7 @@ export function useMonthData(monthId: string) {
     queryKey: monthDataQueryKey(monthId),
     queryFn: () => getMonthData(monthId),
     enabled: !!monthId,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }

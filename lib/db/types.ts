@@ -94,3 +94,24 @@ export interface MonthData {
   opening_balances: OpeningBalance[];
   transactions: TransactionWithAmounts[];
 }
+
+// --- Upload transactions (desde WhatsApp/n8n, pendientes de aprobar) ---
+
+export type UploadTransactionStatus =
+  | "pending"
+  | "approved"
+  | "cancelled"
+  | "processed";
+
+export interface UploadTransaction {
+  id: string;
+  created_at: string;
+  date: string;
+  type: "income" | "expense";
+  amount: number;
+  category_id: string | null;
+  subcategory_id: string | null;
+  tx_ref: string | null;
+  status: UploadTransactionStatus;
+  wa_id: string | null;
+}

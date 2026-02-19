@@ -41,7 +41,7 @@ export function DashboardMonths() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Períodos</h2>
         <Button onClick={() => setShowModal(true)} size="sm">
           <Plus className="mr-2 size-4" />
@@ -50,7 +50,7 @@ export function DashboardMonths() {
       </div>
 
       {months && months.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {months.map((m) => (
             <Link
               key={m.id}
@@ -69,7 +69,7 @@ export function DashboardMonths() {
           ))}
         </div>
       ) : (
-        <div className="mt-8 flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-4 text-center">
           <CalendarDays className="size-12 text-muted-foreground" />
           <p className="text-muted-foreground">
             No hay períodos creados todavía.
