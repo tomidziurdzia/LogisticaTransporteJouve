@@ -35,8 +35,8 @@ Cuando vos u otro usuario crea o modifica meses, cuentas, categorías, subcatego
 
 ### Cómo habilitarlo
 
-1. En el Dashboard de Supabase: **Database → Replication** → en la publicación `supabase_realtime` activá las tablas: **`months`**, **`accounts`**, **`categories`**, **`subcategories`**, **`transactions`**, **`transaction_amounts`**, **`opening_balances`**.
-2. O ejecutá la migración `migrations/006_realtime_transactions.sql` en el SQL Editor (o con `supabase db push`).
+1. En el Dashboard de Supabase: **Database → Replication** → en la publicación `supabase_realtime` activá las tablas: **`months`**, **`accounts`**, **`categories`**, **`subcategories`**, **`transactions`**, **`transaction_amounts`**, **`opening_balances`**, **`upload_transaction`**.
+2. O ejecutá las migraciones `migrations/006_realtime_transactions.sql` y `migrations/008_upload_transaction_realtime_rls.sql` en el SQL Editor (o con `supabase db push`). La 008 además habilita RLS en `upload_transaction` para usuarios autenticados.
 
 La app ya está suscrita a cambios en todas esas tablas; al habilitar Realtime, la invalidación de React Query y la actualización de la UI en todas las pestañas es automática.
 

@@ -9,6 +9,8 @@ import {
   subcategoriesQueryKey,
 } from "@/hooks/use-categories";
 import { accountsQueryKey } from "@/hooks/use-accounts";
+import { uploadTransactionsQueryKey } from "@/hooks/use-upload-transactions";
+import { monthDataQueryKey } from "@/hooks/use-month-data";
 
 export function useRealtimeTransactions() {
   const queryClient = useQueryClient();
@@ -32,6 +34,11 @@ export function useRealtimeTransactions() {
           invalidateAllMonthDependentQueries(queryClient, monthId, {
             subcategories: true,
           });
+          if (monthId) {
+            queryClient.refetchQueries({ queryKey: monthDataQueryKey(monthId) });
+          } else {
+            queryClient.invalidateQueries({ queryKey: ["months"] });
+          }
         }
       )
       .on(
@@ -105,6 +112,19 @@ export function useRealtimeTransactions() {
         },
         () => {
           invalidateAllMonthDependentQueries(queryClient);
+          queryClient.invalidateQueries({ queryKey: ["months"] });
+          queryClient.refetchQueries({ queryKey: ["months"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "upload_transaction",
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: uploadTransactionsQueryKey });
         }
       )
       .subscribe();
