@@ -10,7 +10,7 @@ export async function getUploadTransactions(): Promise<UploadTransaction[]> {
   const { data, error } = await supabase
     .from("upload_transaction")
     .select("*")
-    .eq("status", "pending")
+    .in("status", ["pending", "approved"])
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);

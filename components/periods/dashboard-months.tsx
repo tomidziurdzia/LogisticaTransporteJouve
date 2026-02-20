@@ -40,8 +40,11 @@ export function DashboardMonths() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <div className="flex flex-col">
+      <div
+        className="flex items-center justify-between"
+        style={{ marginBottom: "1.5rem" }}
+      >
         <h2 className="text-2xl font-bold">Períodos</h2>
         <Button onClick={() => setShowModal(true)} size="sm">
           <Plus className="mr-2 size-4" />

@@ -31,13 +31,8 @@ import {
 } from "@/components/ui/table";
 import { approveUploadTransaction } from "@/app/actions/upload-transactions";
 import { createCategory, createSubcategory } from "@/app/actions/categories";
-import {
-  formatAmountForInput,
-  parseLocaleAmount,
-} from "@/lib/format";
-import {
-  invalidateAllMonthDependentQueries,
-} from "@/lib/query-invalidation";
+import { formatAmountForInput, parseLocaleAmount } from "@/lib/format";
+import { invalidateAllMonthDependentQueries } from "@/lib/query-invalidation";
 import { monthDataQueryKey } from "@/hooks/use-month-data";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -86,9 +81,9 @@ export function UploadTransactionsTable({
 
   // Diálogos para crear categoría / subcategoría desde la fila
   const [newCategoryRowId, setNewCategoryRowId] = useState<string | null>(null);
-  const [newCategoryType, setNewCategoryType] = useState<
-    "income" | "expense"
-  >("expense");
+  const [newCategoryType, setNewCategoryType] = useState<"income" | "expense">(
+    "expense",
+  );
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryPending, setNewCategoryPending] = useState(false);
 
@@ -108,7 +103,10 @@ export function UploadTransactionsTable({
       return {
         date: e.date ?? row.date,
         type: (e.type ?? row.type) as "income" | "expense",
-        amount: e.amount !== undefined && e.amount !== "" ? e.amount : String(row.amount),
+        amount:
+          e.amount !== undefined && e.amount !== ""
+            ? e.amount
+            : String(row.amount),
         category_id: e.category_id ?? row.category_id ?? "",
         subcategory_id: e.subcategory_id ?? row.subcategory_id ?? "",
         account_id: e.account_id ?? accounts[0]?.id ?? "",
@@ -117,24 +115,17 @@ export function UploadTransactionsTable({
     [edits, accounts],
   );
 
-  const setEdit = useCallback(
-    (id: string, field: string, value: string) => {
-      setEdits((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], [field]: value },
-      }));
-      setError(null);
-    },
-    [],
-  );
+  const setEdit = useCallback((id: string, field: string, value: string) => {
+    setEdits((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value },
+    }));
+    setError(null);
+  }, []);
 
   /** Valor a mostrar en el input de monto: formateado (es-AR) o raw si está enfocado. */
   const getAmountDisplay = useCallback(
-    (
-      amount: string,
-      type: "income" | "expense",
-      rowId: string,
-    ) => {
+    (amount: string, type: "income" | "expense", rowId: string) => {
       if (focusedAmountRowId === rowId) return amount;
       const num = parseLocaleAmount(amount);
       if (Number.isNaN(num)) return amount;
@@ -265,10 +256,7 @@ export function UploadTransactionsTable({
     if (!newCategoryRowId || !newCategoryName.trim()) return;
     setNewCategoryPending(true);
     try {
-      const cat = await createCategory(
-        newCategoryName.trim(),
-        newCategoryType,
-      );
+      const cat = await createCategory(newCategoryName.trim(), newCategoryType);
       setEdit(newCategoryRowId, "category_id", cat.id);
       setEdit(newCategoryRowId, "subcategory_id", "");
       setNewCategoryRowId(null);
@@ -278,13 +266,7 @@ export function UploadTransactionsTable({
     } finally {
       setNewCategoryPending(false);
     }
-  }, [
-    newCategoryRowId,
-    newCategoryName,
-    newCategoryType,
-    setEdit,
-    router,
-  ]);
+  }, [newCategoryRowId, newCategoryName, newCategoryType, setEdit, router]);
 
   const handleCreateSubcategory = useCallback(async () => {
     if (!newSubcategoryRowId || !newSubcategoryName.trim()) return;
@@ -294,7 +276,10 @@ export function UploadTransactionsTable({
     if (!categoryId) return;
     setNewSubcategoryPending(true);
     try {
-      const sub = await createSubcategory(categoryId, newSubcategoryName.trim());
+      const sub = await createSubcategory(
+        categoryId,
+        newSubcategoryName.trim(),
+      );
       setEdit(newSubcategoryRowId, "subcategory_id", sub.id);
       setNewSubcategoryRowId(null);
       router.refresh();
@@ -303,23 +288,14 @@ export function UploadTransactionsTable({
     } finally {
       setNewSubcategoryPending(false);
     }
-  },     [
-      newSubcategoryRowId,
-      newSubcategoryName,
-      uploads,
-      getRow,
-      setEdit,
-      router,
-    ],
-  );
-
-  if (uploads.length === 0) {
-    return (
-      <div className="rounded-lg border p-6 text-center text-muted-foreground">
-        No hay transacciones pendientes de aprobar.
-      </div>
-    );
-  }
+  }, [
+    newSubcategoryRowId,
+    newSubcategoryName,
+    uploads,
+    getRow,
+    setEdit,
+    router,
+  ]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -337,160 +313,185 @@ export function UploadTransactionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {uploads.map((row) => {
-              const r = getRow(row);
-              const cats = getCategoriesForType(r.type);
-              const subcats = getSubcategoriesForCategory(r.category_id);
-              const isSaving = savingId === row.id;
-              return (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <Input
-                      type="date"
-                      value={r.date}
-                      onChange={(e) => setEdit(row.id, "date", e.target.value)}
-                      className="h-8 w-32 text-sm"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <select
-                      value={r.type}
-                      onChange={(e) =>
-                        handleTypeChange(
-                          row.id,
-                          e.target.value as "income" | "expense",
-                          r.amount,
-                        )
-                      }
-                      className="h-8 w-full min-w-24 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
-                    >
-                      {Object.entries(TYPE_LABEL).map(([val, label]) => (
-                        <option key={val} value={val}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={getAmountDisplay(r.amount, r.type, row.id)}
-                      onChange={(e) =>
-                        handleAmountChange(row.id, e.target.value)
-                      }
-                      onFocus={() => setFocusedAmountRowId(row.id)}
-                      onBlur={() => handleAmountBlur(row)}
-                      placeholder={r.type === "expense" ? "-0,00" : "0,00"}
-                      className="h-8 w-40 min-w-40 text-sm tabular-nums"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={r.category_id}
-                        onChange={(e) => {
-                          setEdit(row.id, "category_id", e.target.value);
-                          setEdit(row.id, "subcategory_id", "");
-                        }}
-                        className="h-8 min-w-32 flex-1 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
-                      >
-                        <option value="">Sin categoría</option>
-                        {cats.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => openNewCategory(row)}
-                        title="Nueva categoría"
-                      >
-                        <Plus className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex min-w-0 flex-1 items-center gap-1">
-                      <select
-                        value={r.subcategory_id}
+            {uploads.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
+                  No hay transacciones pendientes ni aprobadas.
+                </TableCell>
+              </TableRow>
+            ) : (
+              uploads.map((row) => {
+                const r = getRow(row);
+                const cats = getCategoriesForType(r.type);
+                const subcats = getSubcategoriesForCategory(r.category_id);
+                const isSaving = savingId === row.id;
+                const isProcessed = row.status === "processed";
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <Input
+                        type="date"
+                        value={r.date}
                         onChange={(e) =>
-                          setEdit(row.id, "subcategory_id", e.target.value)
+                          setEdit(row.id, "date", e.target.value)
                         }
-                        className="h-8 min-w-28 flex-1 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
-                        disabled={!r.category_id}
+                        className="h-8 w-32 text-sm"
+                        disabled={isProcessed}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        value={r.type}
+                        onChange={(e) =>
+                          handleTypeChange(
+                            row.id,
+                            e.target.value as "income" | "expense",
+                            r.amount,
+                          )
+                        }
+                        className="h-8 w-full min-w-24 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
+                        disabled={isProcessed}
                       >
-                        <option value="">
-                          {r.category_id ? "Ninguna" : "—"}
-                        </option>
-                        {subcats.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
+                        {Object.entries(TYPE_LABEL).map(([val, label]) => (
+                          <option key={val} value={val}>
+                            {label}
                           </option>
                         ))}
                       </select>
-                      {r.category_id && (
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={getAmountDisplay(r.amount, r.type, row.id)}
+                        onChange={(e) =>
+                          handleAmountChange(row.id, e.target.value)
+                        }
+                        onFocus={() => setFocusedAmountRowId(row.id)}
+                        onBlur={() => handleAmountBlur(row)}
+                        placeholder={r.type === "expense" ? "-0,00" : "0,00"}
+                        className="h-8 w-40 min-w-40 text-sm tabular-nums"
+                        disabled={isProcessed}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={r.category_id}
+                          onChange={(e) => {
+                            setEdit(row.id, "category_id", e.target.value);
+                            setEdit(row.id, "subcategory_id", "");
+                          }}
+                          className="h-8 min-w-32 flex-1 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
+                          disabled={isProcessed}
+                        >
+                          <option value="">Sin categoría</option>
+                          {cats.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
-                          className="h-8 shrink-0 gap-1"
-                          onClick={() => openNewSubcategory(row)}
-                          title="Nueva subcategoría"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => openNewCategory(row)}
+                          title="Nueva categoría"
+                          disabled={isProcessed}
                         >
                           <Plus className="size-4" />
-                          {(!r.subcategory_id || subcats.length === 0) && (
-                            <span className="hidden sm:inline">
-                              Agregar subcategoría
-                            </span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex min-w-0 flex-1 items-center gap-1">
+                        <select
+                          value={r.subcategory_id}
+                          onChange={(e) =>
+                            setEdit(row.id, "subcategory_id", e.target.value)
+                          }
+                          className="h-8 min-w-28 flex-1 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
+                          disabled={!r.category_id || isProcessed}
+                        >
+                          <option value="">
+                            {r.category_id ? "Ninguna" : "—"}
+                          </option>
+                          {subcats.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        {r.category_id && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 shrink-0 gap-1"
+                            onClick={() => openNewSubcategory(row)}
+                            title="Nueva subcategoría"
+                            disabled={isProcessed}
+                          >
+                            <Plus className="size-4" />
+                            {(!r.subcategory_id || subcats.length === 0) && (
+                              <span className="hidden sm:inline">
+                                Agregar subcategoría
+                              </span>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        value={r.account_id}
+                        onChange={(e) =>
+                          setEdit(row.id, "account_id", e.target.value)
+                        }
+                        className="h-8 w-full min-w-28 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
+                        disabled={isProcessed}
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    </TableCell>
+                    <TableCell>
+                      {row.status === "processed" ? (
+                        <span className="text-muted-foreground text-sm">
+                          Procesada
+                        </span>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          onClick={() => handleSave(row)}
+                          disabled={isSaving}
+                          title="Guardar"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Save className="size-4" />
                           )}
                         </Button>
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <select
-                      value={r.account_id}
-                      onChange={(e) =>
-                        setEdit(row.id, "account_id", e.target.value)
-                      }
-                      className="h-8 w-full min-w-28 rounded-md border border-input bg-transparent pl-3 pr-8 py-1.5 text-sm"
-                    >
-                      {accounts.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      onClick={() => handleSave(row)}
-                      disabled={isSaving}
-                      title="Guardar"
-                    >
-                      {isSaving ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Save className="size-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* Diálogo nueva categoría */}
       <Dialog

@@ -21,13 +21,11 @@ export function UploadTransactionsSection({
     return null;
   }
 
-  if (uploads.length === 0) {
-    return null;
-  }
-
   return (
     <section className="pb-4">
-      <h2 className="mb-6 text-2xl font-bold">Transacciones pendientes</h2>
+      <h2 className="text-2xl font-bold" style={{ marginBottom: "1.5rem" }}>
+        Transacciones pendientes
+      </h2>
       <UploadTransactionsTable
         uploads={uploads}
         accounts={accounts}
