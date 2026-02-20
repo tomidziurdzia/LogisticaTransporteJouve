@@ -328,7 +328,8 @@ export function UploadTransactionsTable({
                 const cats = getCategoriesForType(r.type);
                 const subcats = getSubcategoriesForCategory(r.category_id);
                 const isSaving = savingId === row.id;
-                const isProcessed = row.status === "processed";
+                const isProcessed =
+                  row.status === "processed" || row.status === "approved";
                 return (
                   <TableRow key={row.id}>
                     <TableCell>
@@ -464,7 +465,7 @@ export function UploadTransactionsTable({
                       </select>
                     </TableCell>
                     <TableCell>
-                      {row.status === "processed" ? (
+                      {isProcessed ? (
                         <span className="text-muted-foreground text-sm">
                           Procesada
                         </span>
