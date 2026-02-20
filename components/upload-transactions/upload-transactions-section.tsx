@@ -24,7 +24,7 @@ export function UploadTransactionsSection({
   return (
     <section className="pb-4">
       <h2 className="text-2xl font-bold" style={{ marginBottom: "1.5rem" }}>
-        Transacciones pendientes
+        Transacciones pendientes y aprobadas
       </h2>
       <UploadTransactionsTable
         uploads={uploads}
