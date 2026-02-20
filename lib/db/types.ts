@@ -109,6 +109,7 @@ export interface UploadTransaction {
   date: string;
   type: "income" | "expense";
   amount: number;
+  description: string | null;
   category_id: string | null;
   subcategory_id: string | null;
   tx_ref: string | null;

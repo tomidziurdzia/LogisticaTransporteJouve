@@ -5,6 +5,7 @@ import type { UploadTransaction } from "@/lib/db/types";
 import { createTransaction } from "./transactions";
 import { createMonthWithBalances } from "./months";
 
+/** Solo devuelve pendientes y aprobadas; las procesadas se excluyen para que dejen de aparecer en la tabla. */
 export async function getUploadTransactions(): Promise<UploadTransaction[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -44,6 +45,7 @@ export interface ApproveUploadTransactionInput {
   date?: string;
   type?: "income" | "expense";
   amount?: number;
+  description?: string | null;
   category_id?: string | null;
   subcategory_id?: string | null;
   account_id: string; // cuenta donde va el monto
@@ -60,11 +62,11 @@ export async function approveUploadTransaction(
     .from("upload_transaction")
     .select("*")
     .eq("id", uploadId)
-    .eq("status", "pending")
+    .in("status", ["pending", "approved"])
     .single();
 
   if (fetchErr || !row) {
-    throw new Error("Transacción pendiente no encontrada.");
+    throw new Error("Transacción pendiente o aprobada no encontrada.");
   }
 
   const date = input.date ?? row.date;
@@ -81,19 +83,22 @@ export async function approveUploadTransaction(
   const signedAmount =
     type === "expense" ? -Math.abs(amount) : Math.abs(amount);
 
-  const description = row.tx_ref ? `[Upload] ${row.tx_ref}` : "[Upload]";
+  const description =
+    input.description?.trim() ||
+    row.description ||
+    (row.tx_ref ? `[Upload] ${row.tx_ref}` : "[Upload]");
 
   // Marcar como procesado primero para evitar duplicados si el usuario reintenta
   const { data: updated, error: updateErr } = await supabase
     .from("upload_transaction")
     .update({ status: "processed" })
     .eq("id", uploadId)
-    .eq("status", "pending")
+    .in("status", ["pending", "approved"])
     .select("id")
     .maybeSingle();
 
   if (updateErr || !updated) {
-    throw new Error("Transacción pendiente no encontrada o ya procesada.");
+    throw new Error("Transacción pendiente o aprobada no encontrada o ya procesada.");
   }
 
   await createTransaction({

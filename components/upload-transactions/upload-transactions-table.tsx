@@ -70,6 +70,7 @@ export function UploadTransactionsTable({
         date: string;
         type: "income" | "expense";
         amount: string;
+        description: string;
         category_id: string;
         subcategory_id: string;
         account_id: string;
@@ -107,6 +108,7 @@ export function UploadTransactionsTable({
           e.amount !== undefined && e.amount !== ""
             ? e.amount
             : String(row.amount),
+        description: e.description ?? row.description ?? "",
         category_id: e.category_id ?? row.category_id ?? "",
         subcategory_id: e.subcategory_id ?? row.subcategory_id ?? "",
         account_id: e.account_id ?? accounts[0]?.id ?? "",
@@ -198,6 +200,7 @@ export function UploadTransactionsTable({
           date: r.date,
           type: r.type,
           amount: amountAbs,
+          description: r.description?.trim() || null,
           category_id: r.category_id || null,
           subcategory_id: r.subcategory_id || null,
           account_id: r.account_id,
@@ -306,6 +309,7 @@ export function UploadTransactionsTable({
               <TableHead>Fecha</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Monto</TableHead>
+              <TableHead>Descripción</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead>Subcategoría</TableHead>
               <TableHead>Cuenta</TableHead>
@@ -316,7 +320,7 @@ export function UploadTransactionsTable({
             {uploads.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No hay transacciones pendientes ni aprobadas.
@@ -328,8 +332,7 @@ export function UploadTransactionsTable({
                 const cats = getCategoriesForType(r.type);
                 const subcats = getSubcategoriesForCategory(r.category_id);
                 const isSaving = savingId === row.id;
-                const isProcessed =
-                  row.status === "processed" || row.status === "approved";
+                const isProcessed = row.status === "processed";
                 return (
                   <TableRow key={row.id}>
                     <TableCell>
@@ -375,6 +378,17 @@ export function UploadTransactionsTable({
                         onBlur={() => handleAmountBlur(row)}
                         placeholder={r.type === "expense" ? "-0,00" : "0,00"}
                         className="h-8 w-40 min-w-40 text-sm tabular-nums"
+                        disabled={isProcessed}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={r.description}
+                        onChange={(e) =>
+                          setEdit(row.id, "description", e.target.value)
+                        }
+                        placeholder="Descripción"
+                        className="h-8 min-w-40 text-sm"
                         disabled={isProcessed}
                       />
                     </TableCell>
@@ -432,18 +446,13 @@ export function UploadTransactionsTable({
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
-                            className="h-8 shrink-0 gap-1"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
                             onClick={() => openNewSubcategory(row)}
                             title="Nueva subcategoría"
                             disabled={isProcessed}
                           >
                             <Plus className="size-4" />
-                            {(!r.subcategory_id || subcats.length === 0) && (
-                              <span className="hidden sm:inline">
-                                Agregar subcategoría
-                              </span>
-                            )}
                           </Button>
                         )}
                       </div>
