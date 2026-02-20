@@ -19,9 +19,19 @@ export default async function DashboardPage() {
       />
       {/* Espaciador fijo: separa tabla de upload y Períodos */}
       <div className="h-12 w-full shrink-0" aria-hidden="true" />
-      <section>
+      <section className="block">
         <DashboardMonths />
       </section>
+      {/* Espaciador debajo de Períodos */}
+      <div
+        style={{
+          height: "2.5rem",
+          minHeight: "2.5rem",
+          width: "100%",
+          flexShrink: 0,
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
