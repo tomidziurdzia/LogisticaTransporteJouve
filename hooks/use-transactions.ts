@@ -8,6 +8,7 @@ import {
   type CreateTransactionInput,
   type UpdateTransactionInput,
 } from "@/app/actions/transactions";
+import { monthDataQueryKey } from "@/hooks/use-month-data";
 import { invalidateAllMonthDependentQueries } from "@/lib/query-invalidation";
 
 export function useCreateTransaction(monthId: string) {
@@ -32,7 +33,12 @@ export function useDeleteTransaction(monthId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
-    onSuccess: () =>
-      invalidateAllMonthDependentQueries(qc, monthId, { subcategories: true }),
+    onSuccess: () => {
+      invalidateAllMonthDependentQueries(qc, monthId, { subcategories: true });
+      // Refetch explícito para que la grilla se actualice al instante
+      if (monthId) {
+        qc.refetchQueries({ queryKey: monthDataQueryKey(monthId) });
+      }
+    },
   });
 }

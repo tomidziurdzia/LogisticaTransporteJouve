@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import {
@@ -24,7 +24,11 @@ import {
   usePreviousMonthBalances,
   useCreateMonthWithBalances,
 } from "@/hooks/use-months";
-import { formatCurrency } from "@/lib/format";
+import {
+  formatCurrency,
+  formatAmountForInput,
+  parseLocaleAmount,
+} from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/months";
 
 interface NewMonthModalProps {
@@ -46,7 +50,21 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
   const [editedAmounts, setEditedAmounts] = useState<Record<string, number>>(
     {},
   );
+  /** Input con foco: guardamos el texto que escribe el usuario para no formatear en cada tecla (evita que el cursor salte). */
+  const [focusedAccountId, setFocusedAccountId] = useState<string | null>(null);
+  const [focusedValue, setFocusedValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  function commitFocused() {
+    if (!focusedAccountId) return;
+    const parsed = parseLocaleAmount(focusedValue);
+    setEditedAmounts((prev) => ({
+      ...prev,
+      [focusedAccountId]: Number.isNaN(parsed) ? 0 : parsed,
+    }));
+    setFocusedAccountId(null);
+    setFocusedValue("");
+  }
 
   useEffect(() => {
     if (!prevBalances) return;
@@ -58,12 +76,26 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
     setEditedAmounts(amounts);
   }, [prevBalances]);
 
-  const total = Object.values(editedAmounts).reduce((sum, val) => sum + val, 0);
+  // Total incluyendo el valor del input con foco si hay uno
+  const total = useMemo(() => {
+    const amounts = { ...editedAmounts };
+    if (focusedAccountId) {
+      const parsed = parseLocaleAmount(focusedValue);
+      amounts[focusedAccountId] = Number.isNaN(parsed) ? 0 : parsed;
+    }
+    return Object.values(amounts).reduce((sum, val) => sum + val, 0);
+  }, [editedAmounts, focusedAccountId, focusedValue]);
 
   async function handleConfirm() {
     setError(null);
     try {
-      const balances = Object.entries(editedAmounts).map(
+      // Incluir el valor del input con foco si hay uno (evita perder el último edit por cierre de estado)
+      const amounts = { ...editedAmounts };
+      if (focusedAccountId) {
+        const parsed = parseLocaleAmount(focusedValue);
+        amounts[focusedAccountId] = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      const balances = Object.entries(amounts).map(
         ([account_id, amount]) => ({
           account_id,
           amount,
@@ -103,7 +135,10 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setEditing(!editing)}
+                onClick={() => {
+                  if (editing) commitFocused();
+                  setEditing(!editing);
+                }}
               >
                 <Pencil className="mr-1 size-3" />
                 {editing ? "Listo" : "Editar"}
@@ -115,7 +150,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cuenta</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-right">Monto (ARS)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -127,16 +162,39 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                       <TableCell className="text-right">
                         {editing ? (
                           <Input
-                            type="number"
-                            step="0.01"
-                            className="ml-auto w-32 text-right"
-                            value={editedAmounts[b.account_id] ?? 0}
-                            onChange={(e) =>
-                              setEditedAmounts((prev) => ({
-                                ...prev,
-                                [b.account_id]: parseFloat(e.target.value) || 0,
-                              }))
+                            type="text"
+                            inputMode="decimal"
+                            className="ml-auto w-36 text-right tabular-nums"
+                            placeholder="Monto"
+                            value={
+                              focusedAccountId === b.account_id
+                                ? focusedValue
+                                : (editedAmounts[b.account_id] ?? 0) === 0
+                                  ? ""
+                                  : formatAmountForInput(
+                                      editedAmounts[b.account_id] ?? 0,
+                                      (editedAmounts[b.account_id] ?? 0) < 0,
+                                    )
                             }
+                            onFocus={() => {
+                              setFocusedAccountId(b.account_id);
+                              const amount = editedAmounts[b.account_id] ?? 0;
+                              setFocusedValue(
+                                amount === 0
+                                  ? ""
+                                  : formatAmountForInput(amount, amount < 0),
+                              );
+                            }}
+                            onChange={(e) => {
+                              if (focusedAccountId === b.account_id) {
+                                setFocusedValue(e.target.value);
+                              }
+                            }}
+                            onBlur={() => {
+                              if (focusedAccountId === b.account_id) {
+                                commitFocused();
+                              }
+                            }}
                           />
                         ) : (
                           formatCurrency(editedAmounts[b.account_id] ?? 0)

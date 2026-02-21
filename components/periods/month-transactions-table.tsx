@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Columns2,
   MoreVertical,
   Pencil,
   Plus,
@@ -24,8 +25,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -259,6 +263,33 @@ export function MonthTransactionsTable({
   const [filterIsOperational, setFilterIsOperational] = useState<
     "" | "true" | "false"
   >("");
+
+  /** Visibilidad de columnas: id -> true/false. undefined = visible. */
+  const [visibleColumns, setVisibleColumns] = useState<
+    Record<string, boolean>
+  >({});
+  const colVisible = useCallback(
+    (id: string) => visibleColumns[id] !== false,
+    [visibleColumns],
+  );
+  const toggleColumn = useCallback((id: string) => {
+    setVisibleColumns((prev) => ({ ...prev, [id]: prev[id] === false }));
+  }, []);
+  const columnConfig = useMemo(
+    () => [
+      { id: "date" as const, label: "Fecha" },
+      { id: "type" as const, label: "Tipo" },
+      { id: "category" as const, label: "Categoría" },
+      { id: "subcategory" as const, label: "Subcategoría" },
+      { id: "description" as const, label: "Descripción" },
+      ...accounts.map((a) => ({ id: `account_${a.id}` as const, label: a.name })),
+      { id: "total" as const, label: "Total" },
+      { id: "op" as const, label: "Op" },
+      { id: "accrual" as const, label: "Imputación" },
+      { id: "actions" as const, label: "Acciones" },
+    ],
+    [accounts],
+  );
 
   const hasActiveFilters =
     filterType !== "" ||
@@ -777,6 +808,27 @@ export function MonthTransactionsTable({
           <option value="true">Operativo</option>
           <option value="false">No operativo</option>
         </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="sm" className="h-8">
+              <Columns2 className="mr-1 size-4" />
+              Columnas
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Mostrar columnas</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {columnConfig.map(({ id, label }) => (
+              <DropdownMenuCheckboxItem
+                key={id}
+                checked={colVisible(id)}
+                onCheckedChange={() => toggleColumn(id)}
+              >
+                {label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {hasActiveFilters && (
           <Button
             type="button"
@@ -1013,76 +1065,88 @@ export function MonthTransactionsTable({
       <div className="overflow-auto rounded-md border">
         <table className="w-full min-w-[600px] table-fixed text-sm">
           <colgroup>
-            {/* Fecha */}
-            <col className="w-28" />
-            {/* Tipo */}
-            <col className="w-24" />
-            {/* Categoría */}
-            <col className="w-32" />
-            {/* Subcategoría */}
-            <col className="w-32" />
-            {/* Descripción */}
-            <col className="w-40" />
-            {/* Una columna por cuenta */}
-            {accounts.map((acc) => (
-              <col key={acc.id} className="w-32" />
-            ))}
-            {/* Total */}
-            <col className="w-24" />
-            {/* Op */}
-            <col className="w-20" />
-            {/* Imputación */}
-            <col className="w-24" />
-            {/* Acciones */}
-            <col className="w-18" />
+            {colVisible("date") && <col className="w-28" />}
+            {colVisible("type") && <col className="w-24" />}
+            {colVisible("category") && <col className="w-32" />}
+            {colVisible("subcategory") && <col className="w-32" />}
+            {colVisible("description") && <col className="w-40" />}
+            {accounts.map((acc) =>
+              colVisible(`account_${acc.id}`) ? (
+                <col key={acc.id} className="w-32" />
+              ) : null,
+            )}
+            {colVisible("total") && <col className="w-24" />}
+            {colVisible("op") && <col className="w-20" />}
+            {colVisible("accrual") && <col className="w-24" />}
+            {colVisible("actions") && <col className="w-18" />}
           </colgroup>
           <thead>
             <tr className="sticky top-0 z-10 border-b bg-muted">
-              <th
-                className="sticky top-0 z-10 cursor-pointer select-none bg-muted px-3 py-2 text-left font-medium"
-                onClick={() =>
-                  setDateSortDir((d) => (d === "desc" ? "asc" : "desc"))
-                }
-              >
-                <span className="inline-flex items-center gap-1">
-                  Fecha
-                  {dateSortDir === "desc" ? (
-                    <ArrowDown className="size-3.5" />
-                  ) : (
-                    <ArrowUp className="size-3.5" />
-                  )}
-                </span>
-              </th>
-              <th className="sticky top-0 z-10 bg-muted pl-3 pr-8 py-2 text-left font-medium">
-                Tipo
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
-                Categoría
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
-                Subcategoría
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
-                Descripción
-              </th>
-              {accounts.map((acc) => (
+              {colVisible("date") && (
                 <th
-                  key={acc.id}
-                  className="sticky top-0 z-10 whitespace-nowrap bg-muted px-3 py-2 text-right font-medium tabular-nums"
+                  className="sticky top-0 z-10 cursor-pointer select-none bg-muted px-3 py-2 text-left font-medium"
+                  onClick={() =>
+                    setDateSortDir((d) => (d === "desc" ? "asc" : "desc"))
+                  }
                 >
-                  {acc.name}
+                  <span className="inline-flex items-center gap-1">
+                    Fecha
+                    {dateSortDir === "desc" ? (
+                      <ArrowDown className="size-3.5" />
+                    ) : (
+                      <ArrowUp className="size-3.5" />
+                    )}
+                  </span>
                 </th>
-              ))}
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-right font-medium tabular-nums">
-                Total
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
-                Op
-              </th>
-              <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
-                Imputación
-              </th>
-              <th className="sticky top-0 z-10 w-18 bg-muted px-1 py-2" />
+              )}
+              {colVisible("type") && (
+                <th className="sticky top-0 z-10 bg-muted pl-3 pr-8 py-2 text-left font-medium">
+                  Tipo
+                </th>
+              )}
+              {colVisible("category") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                  Categoría
+                </th>
+              )}
+              {colVisible("subcategory") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                  Subcategoría
+                </th>
+              )}
+              {colVisible("description") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                  Descripción
+                </th>
+              )}
+              {accounts.map((acc) =>
+                colVisible(`account_${acc.id}`) ? (
+                  <th
+                    key={acc.id}
+                    className="sticky top-0 z-10 whitespace-nowrap bg-muted px-3 py-2 text-right font-medium tabular-nums"
+                  >
+                    {acc.name}
+                  </th>
+                ) : null,
+              )}
+              {colVisible("total") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-right font-medium tabular-nums">
+                  Total
+                </th>
+              )}
+              {colVisible("op") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
+                  Op
+                </th>
+              )}
+              {colVisible("accrual") && (
+                <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-center font-medium">
+                  Imputación
+                </th>
+              )}
+              {colVisible("actions") && (
+                <th className="sticky top-0 z-10 w-18 bg-muted px-1 py-2" />
+              )}
             </tr>
           </thead>
           <tbody>
@@ -1102,28 +1166,29 @@ export function MonthTransactionsTable({
                 >
                   {isEditing ? (
                     <>
-                      {/* Date */}
-                      <td className="px-3 py-1.5">
-                        <Input
-                          type="date"
-                          value={display.date}
-                          min={monthStart}
-                          max={monthEnd}
-                          onChange={(e) =>
-                            isDraft
-                              ? setDraftRows((prev) =>
-                                  prev.map((r) =>
-                                    r.id === row.id
-                                      ? { ...r, date: e.target.value }
-                                      : r,
-                                  ),
-                                )
-                              : setEdit(row.id, { date: e.target.value })
-                          }
-                          className="h-8 text-sm"
-                        />
-                      </td>
-                      {/* Type */}
+                      {colVisible("date") && (
+                        <td className="px-3 py-1.5">
+                          <Input
+                            type="date"
+                            value={display.date}
+                            min={monthStart}
+                            max={monthEnd}
+                            onChange={(e) =>
+                              isDraft
+                                ? setDraftRows((prev) =>
+                                    prev.map((r) =>
+                                      r.id === row.id
+                                        ? { ...r, date: e.target.value }
+                                        : r,
+                                    ),
+                                  )
+                                : setEdit(row.id, { date: e.target.value })
+                            }
+                            className="h-8 text-sm"
+                          />
+                        </td>
+                      )}
+                      {colVisible("type") && (
                       <td className="pl-3 pr-8 py-1.5">
                         <select
                           value={display.type}
@@ -1230,7 +1295,8 @@ export function MonthTransactionsTable({
                           ))}
                         </select>
                       </td>
-                      {/* Category */}
+                      )}
+                      {colVisible("category") && (
                       <td className="px-3 py-1.5">
                         {display.type === "internal_transfer" ? (
                           <span className="text-sm text-muted-foreground">
@@ -1272,7 +1338,8 @@ export function MonthTransactionsTable({
                           </select>
                         )}
                       </td>
-                      {/* Subcategory */}
+                      )}
+                      {colVisible("subcategory") && (
                       <td className="px-3 py-1.5">
                         {display.type === "internal_transfer" ||
                         !display.category_id ? (
@@ -1332,7 +1399,8 @@ export function MonthTransactionsTable({
                           </div>
                         )}
                       </td>
-                      {/* Description */}
+                      )}
+                      {colVisible("description") && (
                       <td className="px-3 py-1.5">
                         <Input
                           value={display.description}
@@ -1356,8 +1424,10 @@ export function MonthTransactionsTable({
                           className="h-8 max-w-[180px] text-sm"
                         />
                       </td>
+                      )}
                       {/* Amount per account */}
                       {accountIds.map((accId) => {
+                        if (!colVisible(`account_${accId}`)) return null;
                         const amountKey = `${row.id}-${accId}`;
                         const amount = getAmountForRow(display, accId);
                         const isExpense = display.type === "expense";
@@ -1443,11 +1513,12 @@ export function MonthTransactionsTable({
                           </td>
                         );
                       })}
-                      {/* Total */}
+                      {colVisible("total") && (
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                         {formatCurrency(total)}
                       </td>
-                      {/* Op checkbox */}
+                      )}
+                      {colVisible("op") && (
                       <td className="px-3 py-1.5 text-center">
                         <input
                           type="checkbox"
@@ -1475,7 +1546,8 @@ export function MonthTransactionsTable({
                           className="size-4 rounded border-input accent-primary"
                         />
                       </td>
-                      {/* Accrual month select */}
+                      )}
+                      {colVisible("accrual") && (
                       <td className="px-3 py-1.5">
                         <select
                           value={
@@ -1517,7 +1589,8 @@ export function MonthTransactionsTable({
                             ))}
                         </select>
                       </td>
-                      {/* Actions */}
+                      )}
+                      {colVisible("actions") && (
                       <td className="w-18 px-1 py-1 align-middle">
                         {isDraft ? (
                           <div className="flex items-center gap-0.5">
@@ -1612,13 +1685,17 @@ export function MonthTransactionsTable({
                           </DropdownMenu>
                         )}
                       </td>
+                      )}
                     </>
                   ) : (
                     <>
                       {/* Read-only cells */}
+                      {colVisible("date") && (
                       <td className="whitespace-nowrap px-3 py-1.5 text-sm text-muted-foreground">
                         {formatDate(display.date)}
                       </td>
+                      )}
+                      {colVisible("type") && (
                       <td className="pl-3 pr-8 py-1.5">
                         <Badge
                           variant={
@@ -1628,19 +1705,27 @@ export function MonthTransactionsTable({
                           {TYPE_LABEL[display.type] ?? display.type}
                         </Badge>
                       </td>
+                      )}
+                      {colVisible("category") && (
                       <td className="px-3 py-1.5 text-sm text-muted-foreground">
                         {categories.find((c) => c.id === display.category_id)
                           ?.name ?? "—"}
                       </td>
+                      )}
+                      {colVisible("subcategory") && (
                       <td className="px-3 py-1.5 text-sm text-muted-foreground">
                         {subcategories.find(
                           (s) => s.id === display.subcategory_id,
                         )?.name ?? "—"}
                       </td>
+                      )}
+                      {colVisible("description") && (
                       <td className="max-w-[180px] truncate px-3 py-1.5 text-sm">
                         {display.description || "—"}
                       </td>
+                      )}
                       {accountIds.map((accId) => {
+                        if (!colVisible(`account_${accId}`)) return null;
                         const amount = getAmountForRow(display, accId);
                         return (
                           <td
@@ -1653,9 +1738,12 @@ export function MonthTransactionsTable({
                           </td>
                         );
                       })}
+                      {colVisible("total") && (
                       <td className="px-3 py-1.5 text-right text-sm font-medium tabular-nums">
                         {formatCurrency(total)}
                       </td>
+                      )}
+                      {colVisible("op") && (
                       <td className="px-3 py-1.5 text-center">
                         {"is_operational" in display &&
                         display.is_operational === false ? (
@@ -1668,6 +1756,8 @@ export function MonthTransactionsTable({
                           </Badge>
                         )}
                       </td>
+                      )}
+                      {colVisible("accrual") && (
                       <td className="px-3 py-1.5 text-center text-sm">
                         {(() => {
                           const amid =
@@ -1694,6 +1784,8 @@ export function MonthTransactionsTable({
                           );
                         })()}
                       </td>
+                      )}
+                      {colVisible("actions") && (
                       <td className="w-18 px-1 py-1 align-top">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1723,6 +1815,7 @@ export function MonthTransactionsTable({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
+                      )}
                     </>
                   )}
                 </tr>
