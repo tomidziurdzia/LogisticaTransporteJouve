@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import {
@@ -76,12 +76,26 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
     setEditedAmounts(amounts);
   }, [prevBalances]);
 
-  const total = Object.values(editedAmounts).reduce((sum, val) => sum + val, 0);
+  // Total incluyendo el valor del input con foco si hay uno
+  const total = useMemo(() => {
+    const amounts = { ...editedAmounts };
+    if (focusedAccountId) {
+      const parsed = parseLocaleAmount(focusedValue);
+      amounts[focusedAccountId] = Number.isNaN(parsed) ? 0 : parsed;
+    }
+    return Object.values(amounts).reduce((sum, val) => sum + val, 0);
+  }, [editedAmounts, focusedAccountId, focusedValue]);
 
   async function handleConfirm() {
     setError(null);
     try {
-      const balances = Object.entries(editedAmounts).map(
+      // Incluir el valor del input con foco si hay uno (evita perder el último edit por cierre de estado)
+      const amounts = { ...editedAmounts };
+      if (focusedAccountId) {
+        const parsed = parseLocaleAmount(focusedValue);
+        amounts[focusedAccountId] = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      const balances = Object.entries(amounts).map(
         ([account_id, amount]) => ({
           account_id,
           amount,
@@ -159,7 +173,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                                   ? ""
                                   : formatAmountForInput(
                                       editedAmounts[b.account_id] ?? 0,
-                                      false,
+                                      (editedAmounts[b.account_id] ?? 0) < 0,
                                     )
                             }
                             onFocus={() => {
@@ -168,7 +182,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                               setFocusedValue(
                                 amount === 0
                                   ? ""
-                                  : formatAmountForInput(amount, false),
+                                  : formatAmountForInput(amount, amount < 0),
                               );
                             }}
                             onChange={(e) => {
