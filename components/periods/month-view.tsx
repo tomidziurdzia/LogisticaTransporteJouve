@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Wallet, TrendingUp, TrendingDown, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,6 +8,7 @@ import { useMonthData } from "@/hooks/use-month-data";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useCategories, useSubcategories } from "@/hooks/use-categories";
 import { useMonths } from "@/hooks/use-months";
+import { sortAccountsByNameOrder } from "@/lib/account-order";
 import { formatCurrency } from "@/lib/format";
 import { MonthTransactionsTable } from "./month-transactions-table";
 
@@ -20,6 +22,11 @@ export function MonthView({ monthId }: MonthViewProps) {
   const { data: categories } = useCategories();
   const { data: subcategories } = useSubcategories();
   const { data: months } = useMonths();
+
+  const sortedAccounts = useMemo(
+    () => sortAccountsByNameOrder(accounts ?? []),
+    [accounts],
+  );
 
   if (monthLoading || accLoading) {
     return (
@@ -69,8 +76,8 @@ export function MonthView({ monthId }: MonthViewProps) {
 
   const closingTotal = openingTotal + allAmountsSum;
 
-  // Per-account balances
-  const accountBalances = (accounts ?? []).map((acc) => {
+  // Per-account balances (mismo orden que la tabla)
+  const accountBalances = sortedAccounts.map((acc) => {
     const opening =
       opening_balances.find((ob) => ob.account_id === acc.id)?.amount ?? 0;
     let txSum = 0;
@@ -168,7 +175,7 @@ export function MonthView({ monthId }: MonthViewProps) {
         monthId={monthId}
         monthYear={month.year}
         monthNumber={month.month}
-        accounts={accounts ?? []}
+        accounts={sortedAccounts}
         categories={categories ?? []}
         subcategories={subcategories ?? []}
         months={months ?? []}

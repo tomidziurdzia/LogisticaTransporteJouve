@@ -24,6 +24,7 @@ import {
   usePreviousMonthBalances,
   useCreateMonthWithBalances,
 } from "@/hooks/use-months";
+import { sortByAccountNameOrder } from "@/lib/account-order";
 import {
   formatCurrency,
   formatAmountForInput,
@@ -75,6 +76,11 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditedAmounts(amounts);
   }, [prevBalances]);
+
+  const sortedPrevBalances = useMemo(
+    () => sortByAccountNameOrder(prevBalances ?? []),
+    [prevBalances],
+  );
 
   // Total incluyendo el valor del input con foco si hay uno
   const total = useMemo(() => {
@@ -154,7 +160,7 @@ export function NewMonthModal({ year, month, onClose }: NewMonthModalProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {prevBalances?.map((b) => (
+                  {sortedPrevBalances.map((b) => (
                     <TableRow key={b.account_id}>
                       <TableCell className="font-medium">
                         {b.account_name}
